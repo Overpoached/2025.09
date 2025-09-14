@@ -1,158 +1,143 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as FileSystem from 'expo-file-system';
-import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import { useRef, useState } from 'react';
-import { Alert, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import ImageService from './services/ImageService';
+import VisionService, { LocalizedObjectAnnotation } from './services/VisionService';
 
-const GOOGLE_CLOUD_VISION_API_ENDPOINT = 'https://image-labeler-1074595524961.asia-east1.run.app';
+const screenWidth = Dimensions.get('window').width;
+const numColumns = Math.floor(screenWidth / 200); // Calculate number of columns
+const itemWidth = (screenWidth - 20) / 3; // Calculate item width with padding
 
 export default function Index() {
   const [permission, requestPermission] = useCameraPermissions();
   const [photo, setPhoto] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
-  
-  const labelImage = async (imageUri: string) => {
-        try {
-            //const resizedPhoto = await ImageManipulator.manipulateAsync(
-            //    imageUri,
-            //    [{ resize: { width: 500 } }],
-            //    { base64: true, compress: 0.8 }
-            //);
-
-            let base64code = '';
-            if (Platform.OS === 'web') {
-              // Web-specific code to read the image as base64
-              console.log('Running on web');
-              const response = await fetch(imageUri);
-              const blob = await response.blob();
-              base64code = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-              });
-              base64code = base64code.replace(/^data:image\/(png|jpeg|jpg);base64,/, ''); // Remove data URL prefix
-              //base64code = imageUri.replace(/^data:image\/(png|jpeg|jpg);base64,/, ''); // Remove data URL prefix
-            } else {
-              base64code = await FileSystem.readAsStringAsync(imageUri, {
-                encoding: FileSystem.EncodingType.Base64,
-              });
-            }
-
-            console.log('Base64 length:', base64code.length, base64code.substring(0, 100) + '...');
-
-            const body = JSON.stringify({
-                requests: [
-                    {
-                        image: {
-                            content: base64code
-                        }
-                    }
-                ]
-            });
-            //console.log('POST Request', body);
-            const response = await fetch(
-                `${GOOGLE_CLOUD_VISION_API_ENDPOINT}`,
-                {
-                    method: 'POST',
-                    headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: body
-                }
-            );
-            
-            console.log('Parsing Response: ', response.status, response.statusText, response.type, 
-              response.url, response.headers, response.body);
-
-            if (response.ok) {
-                
-                const responseJson = await response.json();
-                console.log('Google Vision API Response:', responseJson);
-
-                const detectedLabels: string[] = [];
-                if (responseJson.result.length > 0) {
-                responseJson.result[0].labelAnnotations.forEach((item: any) => {
-                  console.log(`Description: ${item.description}, Score: ${item.score}`);
-                  detectedLabels.push(item.description + ': ' + item.score.toFixed(5));
-                });
-
-
-                const webLabels: string[] = [];
-                //Web detection
-                responseJson.result[0].webDetection?.bestGuessLabels.forEach((item: any) => {
-                  console.log(`Best Guess: ${item.label}`);
-                  webLabels.push(item.label);
-                });
-
-                responseJson.result[0].webDetection?.webEntities.forEach((item: any) => {
-                  console.log(`Description: ${item.description}, Score: ${item.score}`);
-                  webLabels.push(item.description + ': ' + item.score.toFixed(5));
-                });
-
-                const alertText: string = detectedLabels.join("\n") + "\nWeb Detection:\n" + webLabels.join("\n");
-
-                alertText.length > 0 ? Alert.alert("Detected Labels", alertText) :
-                  Alert.alert("No Labels", "No labels detected.");
-              }
-              else {
-                Alert.alert("No Labels", "No labels detected.");
-              }
-               
-            } else {
-                Alert.alert("Error", response.status.toString() || '\n' || response.statusText);
-                //setLabels([]);
-            }
-        } catch (error) {
-            console.error(error);
-            Alert.alert("Error", "Failed to call Google Vision API.");
-            //setLabels([]);
-        }
-    };
+  const [localizedObjects, setLocalizedObjects] = useState<LocalizedObjectAnnotation[]>([]); // Store localized objects
+  const [selectedObjects, setSelectedObjects] = useState<number[]>([]); // Store selected object indices
+  const [labelResults, setLabelResults] = useState<{ [key: number]: string }>({}); // Store label results
+  const [subImageUris, setSubImageUris] = useState<string[]>([]); // Store sub-image URIs
+  const [cameraAspectRatio, setCameraAspectRatio] = useState(1); // Default aspect ratio
 
 
   // Take photo function
   const takePhoto = async () => {
     if (cameraRef.current) {
       try {
-        //cameraRef.current._onCameraReady = () => { console.log('Camera is ready'); }; // Ensure camera is ready
         const photocam = await cameraRef.current.takePictureAsync();
         console.log('Photo taken:', photocam.uri);
-        console.log(photocam.width, photocam.height, photocam.format);
-        const resizedPhotoContext = ImageManipulator.manipulate(photocam.uri);
-        if (photocam.height > photocam.width && photocam.height > 1080) {
-          resizedPhotoContext.resize({ height: 1080 });
-        } else if (photocam.width >= photocam.height && photocam.width > 1080) {
-          resizedPhotoContext.resize({ width: 1080 });
-        }
-        const image = await resizedPhotoContext.renderAsync();
-        const result = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
-        console.log('Resized photo:', result.uri, result.width, result.height, result.base64);
-        setPhoto(result.uri);
 
-        await labelImage(result.uri);
+        const resizedUri = await ImageService.resizeImage(photocam.uri);
+        console.log('Resized photo:', resizedUri);
+        setPhoto(resizedUri);
 
-        image.release();
-        resizedPhotoContext.release();
-        
-        // Save to local storage
-        const filename = `photo-${Date.now()}.jpg`;
-        const destination = `${FileSystem.documentDirectory}${filename}`;
-        
-        //this will invalidate the photo.uri
-        // await FileSystem.moveAsync({
-        //   from: photo.uri,
-        //   to: destination
-        // });
-        
-        // Save to media library
-        //await MediaLibrary.saveToLibraryAsync(destination);
+        //Find relavent objects from photo
+        const objects = await VisionService.objectLocalization(resizedUri);
+        objects.print();
+        setLocalizedObjects(objects.getLocalizedObjects()); // Store localized objects
+
+
+        // const clothingObjects = objects.getLocalizedObjects();
+        // // const clothingObjects = objects.getLocalizedObjects().filter(object =>
+        // //   ClothingKeywords.includes(object.name.toLowerCase())
+        // // );
+        // for (const object of clothingObjects) {
+        //   console.log(`Object: ${object.name}, Score: ${object.score}`);
+
+        //   const subImageUri = await ImageService.extractSubImageNative(resizedUri, object.boundingPoly);
+        //   console.log(`Sub-image URI: ${subImageUri}`);
+        //   // You can further process the sub-image URI as needed
+        //   const subImageLabels = await VisionService.labelImage(subImageUri);
+        //   subImageLabels.print();
+        //   Alert.alert(subImageLabels.toString());
+        // }
+
       } catch (error) {
         console.error('Error taking photo:', error);
       }
     }
   };
+
+  useEffect(() => {
+    // Function to get camera aspect ratio (replace with your actual implementation)
+    const getCameraAspectRatio = async () => {
+        // This is a placeholder - replace with actual code to get camera dimensions
+        // For example, you might use cameraRef.current.getSupportedRatiosAsync()
+        cameraRef.current?.getAvailablePictureSizesAsync().then(ratios => {
+            console.log('Supported camera ratios:', ratios);
+        });
+        // and then calculate the aspect ratio from the chosen ratio
+        // const cameraWidth = 1920; // Example width
+        // const cameraHeight = 1080; // Example height
+        // const aspectRatio = cameraWidth / cameraHeight;
+        // setCameraAspectRatio(aspectRatio);
+    };
+
+    getCameraAspectRatio();
+  }, []);
+
+  useEffect(() => {
+    const generateSubImageUris = async () => {
+      if (photo && localizedObjects.length > 0) {
+        const uris = await Promise.all(
+          localizedObjects.map(async (object) => {
+            return await ImageService.extractSubImageNative(photo, object.boundingPoly);
+          })
+        );
+        setSubImageUris(uris);
+      }
+    };
+
+    generateSubImageUris();
+  }, [photo, localizedObjects]);
+
+  const handleSelectObject = (index: number) => {
+    if (selectedObjects.includes(index)) {
+      setSelectedObjects(selectedObjects.filter(i => i !== index)); // Deselect
+    } else {
+      setSelectedObjects([...selectedObjects, index]); // Select
+    }
+  };
+  
+  const handleLabelSelected = async () => {
+    const results: { [key: number]: string } = {};
+    if (!photo) {
+      console.log('No photo available');
+      Alert.alert('No photo available');
+      return;
+    };
+    console.log('Labeling selected objects:', selectedObjects);
+    if (selectedObjects.length === 0) {
+      Alert.alert('No objects selected', 'Please select at least one object to label.');
+      return;
+    }
+    // For each selected object, extract sub-image and label it
+    let logResults = '';
+    for (const index of selectedObjects) {
+      const object = localizedObjects[index];
+      const subImageUri = await ImageService.extractSubImageNative(photo, object.boundingPoly);
+      const subImageLabels = await VisionService.labelImage(subImageUri);
+      results[index] = subImageLabels.toString();
+      console.log(`Labels for object ${index}: ${results[index]}`);
+      logResults += results[index] + '\n';
+    }
+    setLabelResults(results);
+    Alert.alert('Labeling Results', logResults);
+  };
+
+  const renderItem = ({ item }: { item: { id: string; source: string } }) => (
+    <TouchableOpacity
+      style={[
+        styles.gridItem,
+        selectedObjects.includes(Number(item.id)) && styles.selectedGridItem, // Highlight selected items
+      ]}
+      onPress={() => handleSelectObject(Number(item.id))}
+    >
+      <Image source={{ uri: item.source }} style={styles.gridImage} resizeMode="cover" />
+      
+    </TouchableOpacity>
+
+    //{ selectedObjects.includes(index) && <Text style={styles.selectedOverlay}>Selected</Text> }
+  );
 
   if (!permission) {
     // Camera permissions are still loading
@@ -177,12 +162,48 @@ export default function Index() {
     <View style={styles.container}>
       {photo ? (
         // Show captured photo
-        <View style={styles.photoContainer}>
-          <Image source={{ uri: photo }} style={styles.photo} />
+        <ScrollView style={styles.scrollContentContainer}>
+          {/* Main Photo Section */}
+          {/* <View style={styles.photoContainer}>
+            <Image source={{ uri: photo }} style={styles.photo} resizeMode="cover"/>
+          </View> */}
+
+          {/* Separator Line */}
+          {/* <View style={styles.separator} /> */}
+
+          <FlatList
+            data={subImageUris.map((uri, index) => ({
+              id: index.toString(),
+              source: uri, // Generate sub-image URIs
+            }))}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            numColumns={3} // Dynamic number of columns
+            scrollEnabled={false} // Disable FlatList scrolling so it works with the parent ScrollView
+            ListHeaderComponent={() => (
+              <>
+                <View style={styles.photoContainer}>
+                  <Image source={{ uri: photo }} style={styles.photo} resizeMode="cover"/>
+                </View>
+                <View style={styles.separator} />
+              </>
+            )}
+            style={styles.gridContainer}
+          />
+          {/* <View style={styles.gridContainer}>
+            {subImageUris.map((uri, index) => (
+              renderItem(uri, index)
+            ))}
+          </View> */}
+
+          <TouchableOpacity style={styles.button} onPress={handleLabelSelected}>
+            <Text style={styles.buttonText}>Label Selected</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.button} onPress={() => setPhoto(null)}>
             <Text style={styles.buttonText}>Take New Photo</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       ) : (
         // Show camera
         <CameraView style={styles.camera} facing='back' ref={cameraRef}
@@ -202,28 +223,41 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    //justifyContent: 'center',
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
   },
   camera: {
     flex: 1,
   },
   photoContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: '100%',
+    height: 300,
+    padding: 10,
   },
   photo: {
-    width: '90%',
-    height: '70%',
+    width: '100%',
+    height: '100%',
     borderRadius: 10,
   },
+  separator: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    //marginVertical: 10,
+  },
   buttonContainer: {
-    flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 20,
+    //flex: 1,
     flexDirection: 'row',
     backgroundColor: 'transparent',
-    margin: 64,
+    //margin: 64,
     justifyContent: 'center',
-    alignItems: 'flex-end',
+    //alignItems: 'flex-end',
   },
   button: {
     backgroundColor: 'white',
@@ -234,5 +268,46 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     color: 'black',
+  },
+  gridContainer: {
+    //marginTop: 20,
+    //paddingHorizontal: 10, // Add horizontal padding
+    flexGrow: 1,
+    //flexDirection: 'row', // Enable horizontal layout
+    //flexWrap: 'wrap', // Allow items to wrap to the next line
+    //justifyContent: 'flex-start', // Align items to the start of the container
+  },
+  gridItem: {
+    margin: 5,
+    aspectRatio: 1, // Ensure square aspect ratio
+    borderWidth: 2,
+    borderColor: 'transparent',
+    //minWidth: 200, // Minimum width for each item
+    width: itemWidth, // Set a fixed width for each item
+    height: itemWidth,
+    //maxWidth: itemWidth,
+    //minWidth: itemWidth,
+  },
+  selectedGridItem: {
+    borderColor: 'blue', // Highlight selected items
+  },
+  gridImage: {
+    //flex: 1,
+    //resizeMode: 'cover',
+    width: '100%',
+    height: '100%',
+    aspectRatio: 1,
+  },
+  selectedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 255, 0.3)', // Semi-transparent blue overlay
+    justifyContent: 'center',
+    alignItems: 'center',
+    color: 'white',
+    fontSize: 16,
   },
 });
