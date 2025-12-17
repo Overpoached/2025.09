@@ -39,5 +39,5 @@ yarn-error.*
 app-example
 
 # CUDA
-./CUDA/bin/
-./CUDA/out/
+CUDA/bin/
+CUDA/out/
