@@ -41,3 +41,8 @@ app-example
 # CUDA
 CUDA/bin/
 CUDA/out/
+CUDA/x64/
+CUDA/.vs/
+
+x64/
+.vs/
