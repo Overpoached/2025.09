@@ -2,6 +2,20 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 
+void PrintDeviceProperties() { 
+    int deviceCount = 0; 
+    cudaError_t err = cudaGetDeviceCount(&deviceCount); 
+    if (err != cudaSuccess) { 
+        printf("cudaGetDeviceCount failed: %s\n", cudaGetErrorString(err)); 
+        return; 
+    } 
+    for (int dev = 0; dev < deviceCount; ++dev) { 
+        cudaDeviceProp prop; 
+        cudaGetDeviceProperties(&prop, dev); 
+        printf("Device %d: %s\n  Compute capability: %d.%d\n  Global mem: %zu MB\n", dev, prop.name, prop.major, prop.minor, prop.totalGlobalMem / (1024 * 1024)); 
+    } 
+}
+
 // CUDA kernel: Each thread adds 1 to one element
 __global__ void addOneKernel(int* d_data, int size) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;

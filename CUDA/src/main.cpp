@@ -1,6 +1,8 @@
 #include <iostream>
 #include "kernel.h"
 
+// CUDA implementations are provided in src/kernel.cu
+
 int main() {
     std::cout << "=== CUDA Array Addition Demo ===" << std::endl;
 
