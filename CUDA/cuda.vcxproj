@@ -54,7 +54,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(ProgramFiles) (x86)\MSBuild\Microsoft.Cpp\v4.0\BuildCustomizations\CUDA 13.3.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 13.3.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -116,11 +116,25 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(CudaToolkitIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <CudaCompile>
+      <!-- Ada Lovelace. The toolkit default is compute_75,sm_75, which runs on
+           this card only by forward compatibility and never uses sm_89 codegen. -->
+      <CodeGeneration>compute_89,sm_89</CodeGeneration>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <Include>$(ProjectDir)src;%(Include)</Include>
+      <GPUDebugInfo>true</GPUDebugInfo>
+      <!-- Left off deliberately: kernel output is checked against an oracle
+           within float tolerance, and fast-math would change the arithmetic. -->
+      <FastMath>false</FastMath>
+    </CudaCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)\$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>$(CudaToolkitLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cudart.lib;nvml.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>echo Output: $(OutDir)$(TargetName)$(TargetExt)</Command>
@@ -135,13 +149,30 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(CudaToolkitIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <CudaCompile>
+      <!-- Ada Lovelace. The toolkit default is compute_75,sm_75, which runs on
+           this card only by forward compatibility and never uses sm_89 codegen. -->
+      <CodeGeneration>compute_89,sm_89</CodeGeneration>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <Include>$(ProjectDir)src;%(Include)</Include>
+      <GPUDebugInfo>false</GPUDebugInfo>
+      <!-- -lineinfo costs nothing at runtime and is what lets Nsight Compute
+           attribute stalls back to source lines. -->
+      <GenerateLineInfo>true</GenerateLineInfo>
+      <!-- Left off deliberately: kernel output is checked against an oracle
+           within float tolerance, and fast-math would change the arithmetic. -->
+      <FastMath>false</FastMath>
+    </CudaCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)\$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>$(CudaToolkitLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cudart.lib;nvml.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>echo Output: $(OutDir)$(TargetName)$(TargetExt)</Command>
@@ -151,15 +182,34 @@
     <CudaCompile Include="src\kernel.cu">
       <FileType>Document</FileType>
     </CudaCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <CudaCompile Include="src\kernel.h" />
+    <CudaCompile Include="src\kernels\memory\vector_add.cu">
+      <FileType>Document</FileType>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\bench\bandwidth_suite.cpp" />
+    <ClCompile Include="src\bench\cuda_check.cpp" />
+    <ClCompile Include="src\bench\cuda_timer.cpp" />
+    <ClCompile Include="src\bench\gpu_state.cpp" />
+    <ClCompile Include="src\bench\harness.cpp" />
+    <ClCompile Include="src\bench\report.cpp" />
+    <ClCompile Include="src\bench\stats.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\kernel.h" />
+    <ClInclude Include="src\bench\bandwidth_suite.h" />
+    <ClInclude Include="src\bench\cuda_check.h" />
+    <ClInclude Include="src\bench\cuda_timer.h" />
+    <ClInclude Include="src\bench\device_buffer.h" />
+    <ClInclude Include="src\bench\gpu_state.h" />
+    <ClInclude Include="src\bench\harness.h" />
+    <ClInclude Include="src\bench\report.h" />
+    <ClInclude Include="src\bench\stats.h" />
+    <ClInclude Include="src\kernels\memory\vector_add.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(ProgramFiles) (x86)\MSBuild\Microsoft.Cpp\v4.0\BuildCustomizations\CUDA 13.3.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 13.3.targets" />
   </ImportGroup>
 </Project>

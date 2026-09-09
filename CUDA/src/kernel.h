@@ -5,6 +5,4 @@
 // Returns the sum of all elements after addition
 int addOneAndSum(int* data, int size);
 
-void PrintDeviceProperties();
-
 #endif // KERNEL_H
