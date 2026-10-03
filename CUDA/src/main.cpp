@@ -23,6 +23,8 @@
 #include "bench/stats.h"
 #include "kernel.h"
 
+#include "engine/engine.h"
+
 namespace {
 
 struct Options {
@@ -34,6 +36,10 @@ struct Options {
     std::vector<int> element_counts;
     std::string markdown_path;
     std::string what_changed;
+
+	// Engine use options
+	std::string model_path = "./model/model.onnx";  // Default model path
+    std::string image_path = "./images/test.jpg";  // Default image path
 };
 
 void PrintUsage(std::ostream& out) {
@@ -261,6 +267,14 @@ int RunBench(const Options& options) {
     return trustworthy ? 0 : 2;
 }
 
+int RunEngine(const Options& options) {
+    ohy::Engine engine;
+    engine.Initialize(options.model_path);  // Default path
+    std::string result = engine.ProcessImage(options.image_path);
+    std::cout << "Identified car model: " << result << "\n";
+    return 0;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -281,6 +295,9 @@ int main(int argc, char** argv) {
         }
         if (options.command == "bench") {
             return RunBench(options);
+        }
+        if (options.command == "add") {
+			return RunEngine(options);
         }
 
         std::cerr << "unknown command: " << options.command << "\n\n";
