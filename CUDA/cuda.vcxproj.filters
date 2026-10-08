@@ -21,6 +21,7 @@
     <CudaCompile Include="src\kernel.cu">
       <Filter>sandbox</Filter>
     </CudaCompile>
+    <CudaCompile Include="src\kernels\nn\conv.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
@@ -45,6 +46,11 @@
     <ClCompile Include="src\bench\stats.cpp">
       <Filter>bench</Filter>
     </ClCompile>
+    <ClCompile Include="src\engine\engine.cpp" />
+    <ClCompile Include="src\engine\tensor.cpp" />
+    <ClCompile Include="src\engine\ops\conv.cpp" />
+    <ClCompile Include="src\test\test.cpp" />
+    <ClCompile Include="src\engine\utility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\bench\bandwidth_suite.h">
@@ -77,5 +83,12 @@
     <ClInclude Include="src\kernel.h">
       <Filter>sandbox</Filter>
     </ClInclude>
+    <ClInclude Include="src\engine\datatypes.h" />
+    <ClInclude Include="src\engine\engine.h" />
+    <ClInclude Include="src\engine\utility.h" />
+    <ClInclude Include="src\engine\tensor.h" />
+    <ClInclude Include="src\kernels\kernel_utility.h" />
+    <ClInclude Include="src\test\test.h" />
+    <ClInclude Include="src\kernels\nn\nn.h" />
   </ItemGroup>
 </Project>

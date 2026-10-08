@@ -24,6 +24,7 @@
 #include "kernel.h"
 
 #include "engine/engine.h"
+#include "test/test.h"
 
 namespace {
 
@@ -272,7 +273,15 @@ int RunEngine(const Options& options) {
     engine.Initialize(options.model_path);  // Default path
     std::string result = engine.ProcessImage(options.image_path);
     std::cout << "Identified car model: " << result << "\n";
+
+	engine.Shutdown();
     return 0;
+}
+
+int RunTest(const Options& options) {
+    std::cout << "Running Test...\n";
+	test::InitTests();
+    return test::RunAllTests();
 }
 
 }  // namespace
@@ -298,6 +307,9 @@ int main(int argc, char** argv) {
         }
         if (options.command == "add") {
 			return RunEngine(options);
+        }
+        if (options.command == "test") {
+            return RunTest(options);
         }
 
         std::cerr << "unknown command: " << options.command << "\n\n";

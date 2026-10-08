@@ -4,8 +4,13 @@
     <ShowAllFiles>true</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Add|x64'">
-    <LocalDebuggerCommandArguments>add</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArgumentsHistory>add|</LocalDebuggerCommandArgumentsHistory>
+    <LocalDebuggerCommandArgumentsHistory>add|--add --image |--add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin"|add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin"|</LocalDebuggerCommandArgumentsHistory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Test|x64'">
+    <LocalDebuggerCommandArguments>test</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArgumentsHistory>test|</LocalDebuggerCommandArgumentsHistory>
   </PropertyGroup>
 </Project>
