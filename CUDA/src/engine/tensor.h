@@ -24,6 +24,8 @@ namespace ohy {
         // Squeeze/Unsqueeze axes, Gather indices
         int64_t numel() const;                  // product of shape
         float* f32() const { return static_cast<float*>(storage->ptr); }
+        int* i32() const { return static_cast<int*>(storage->ptr); }
+        int64_t* i64() const { return static_cast<int64_t*>(storage->ptr); }
     };
     using TensorPtr = std::shared_ptr<Tensor>;
 

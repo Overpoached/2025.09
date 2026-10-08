@@ -11,9 +11,15 @@ namespace kernels {
 	void Add(const float* x, const float* y, float* z, int64_t n, cudaStream_t stream);
 
 	// Convolution operation
-	void Conv(const float* x, int64_t xrows, int64_t xcols, 
-				const float* w, int64_t wrows, int64_t wcols, 
-				float* y, int64_t yrows, int64_t ycols,
+	struct ConvShape {
+		int64_t xchannels, xrows, xcols;
+		int64_t wchannels, wrows, wcols;
+		int64_t ychannels, yrows, ycols;
+	};
+	void Conv(const float* x,
+				const float* w, 
+				float* y,
+				const ConvShape& shapes,
 				const int64_t* pad,		//up, right, down, left
 				int64_t npad,
 				const int64_t* stride,	//row x col (h x w)

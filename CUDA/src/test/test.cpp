@@ -130,10 +130,17 @@ namespace test {
 		ohy::DeviceBuffer d_s(reinterpret_cast<const char*>(stride.data()), stride.size() * sizeof(int64_t));
 		ohy::DeviceBuffer d_y(ybytes);
 
+		kernels::ConvShape shapes;
+		shapes.xchannels = 1;
+		shapes.xrows = xrows;
+		shapes.xcols = xcols;
+		shapes.wrows = wrows;
+		shapes.wcols = wcols;
+		shapes.yrows = yh;
+		shapes.ycols = yw;
 		kernels::Conv(static_cast<const float*>(d_x.ptr),
-			xrows, xcols,
-			static_cast<float*>(d_w.ptr), wrows, wcols,
-			static_cast<float*>(d_y.ptr), yh, yw,
+			static_cast<float*>(d_w.ptr),
+			static_cast<float*>(d_y.ptr), shapes,
 			static_cast<int64_t*>(d_p.ptr), pad.size(),
 			static_cast<int64_t*>(d_s.ptr), stride.size(), 0);
 		CUDA_CHECK(cudaDeviceSynchronize());           // surfaces errors from inside the kernel
