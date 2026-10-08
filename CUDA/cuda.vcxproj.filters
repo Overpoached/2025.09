@@ -49,6 +49,7 @@
     </ClCompile>
     <ClCompile Include="src\engine\engine.cpp" />
     <ClCompile Include="src\engine\tensor.cpp" />
+    <ClCompile Include="src\engine\ops\elementop.cpp" />
     <ClCompile Include="src\engine\ops\conv.cpp" />
     <ClCompile Include="src\test\test.cpp" />
     <ClCompile Include="src\engine\utility.cpp" />
@@ -88,6 +89,7 @@
     <ClInclude Include="src\engine\engine.h" />
     <ClInclude Include="src\engine\utility.h" />
     <ClInclude Include="src\engine\tensor.h" />
+    <ClInclude Include="src\engine\op.h" />
     <ClInclude Include="src\kernels\kernel_utility.h" />
     <ClInclude Include="src\test\test.h" />
     <ClInclude Include="src\kernels\nn\nn.h" />

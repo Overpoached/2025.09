@@ -148,6 +148,10 @@ Options ParseArgs(int argc, char** argv, bool* should_exit) {
             options.markdown_path = TakeValue(argc, argv, i, "--markdown");
         } else if (arg == "--note") {
             options.what_changed = TakeValue(argc, argv, i, "--note");
+        } else if (arg == "--images") {
+        //    options.image_path = ParseSizeList(TakeValue(argc, argv, i, "--sizes"));
+        } else if (arg == "--image") {
+            options.image_path = TakeValue(argc, argv, i, "--image");
         } else if (!arg.empty() && arg[0] == '-') {
             throw std::runtime_error("unrecognised option: " + arg);
         } else {

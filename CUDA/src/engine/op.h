@@ -1,0 +1,28 @@
+#pragma once
+
+#include <cuda_runtime.h>
+#include <functional>
+#include <vector>
+#include "tensor.h"
+
+namespace onnx {
+	class NodeProto;
+}
+
+namespace ohy {
+
+	struct OpContext { cudaStream_t stream = nullptr; };
+
+	using OpFn = std::function<std::vector<TensorPtr>(
+		const onnx::NodeProto*, const std::vector<TensorPtr>& inputs, OpContext&)>;
+
+	std::vector<TensorPtr> OpSigmoid(const onnx::NodeProto* node,
+		const std::vector<TensorPtr>& in, OpContext& ctx);
+	std::vector<TensorPtr> OpConv(const onnx::NodeProto* node,
+		const std::vector<TensorPtr>& in, OpContext& ctx);
+	std::vector<TensorPtr> OpAdd(const onnx::NodeProto* node,
+		const std::vector<TensorPtr>& in, OpContext& ctx);
+
+	// Helpers
+
+}
