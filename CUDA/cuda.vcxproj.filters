@@ -21,6 +21,7 @@
     <CudaCompile Include="src\kernel.cu">
       <Filter>sandbox</Filter>
     </CudaCompile>
+    <CudaCompile Include="src\kernels\nn\elementop.cu" />
     <CudaCompile Include="src\kernels\nn\conv.cu" />
   </ItemGroup>
   <ItemGroup>

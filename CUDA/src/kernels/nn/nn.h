@@ -5,6 +5,11 @@
 
 
 namespace kernels {
+
+	// elementwise operations: Add, Sub, Mul, Div, Pow, Min, Max, And, Or, Xor
+	void Sigmoid(const float* x, float* y, int64_t n, cudaStream_t stream);
+	void Add(const float* x, const float* y, float* z, int64_t n, cudaStream_t stream);
+
 	// Convolution operation
 	void Conv(const float* x, int64_t xrows, int64_t xcols, 
 				const float* w, int64_t wrows, int64_t wcols, 
