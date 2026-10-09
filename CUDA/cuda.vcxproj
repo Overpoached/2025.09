@@ -332,12 +332,14 @@
     </CudaCompile>
     <CudaCompile Include="src\kernels\nn\conv.cu" />
     <CudaCompile Include="src\kernels\nn\elementop.cu" />
+    <CudaCompile Include="src\kernels\nn\layernorm.cu" />
     <CudaCompile Include="src\kernels\nn\transpose.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\engine\engine.cpp" />
     <ClCompile Include="src\engine\ops\concat.cpp" />
     <ClCompile Include="src\engine\ops\conv.cpp" />
+    <ClCompile Include="src\engine\ops\layernorm.cpp" />
     <ClCompile Include="src\engine\ops\reshape.cpp" />
     <ClCompile Include="src\engine\ops\transpose.cpp" />
     <ClCompile Include="src\engine\tensor.cpp" />

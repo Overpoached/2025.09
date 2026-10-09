@@ -44,4 +44,8 @@ namespace kernels {
 		int64_t bStrides[kMaxBroadcastRank];         // 0 on axes where b is broadcast
 	};
 	void AddBroadcast(const float* a, const float* b, float* y, const BroadcastShape& shape, cudaStream_t stream);
+
+	// LayerNormalization over the last `cols` elements of each row. bias may be nullptr.
+	void LayerNorm(const float* x, const float* scale, const float* bias, float* y,
+		int64_t rows, int64_t cols, float epsilon, cudaStream_t stream);
 }
