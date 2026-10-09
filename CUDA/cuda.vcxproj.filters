@@ -55,6 +55,7 @@
     <ClCompile Include="src\engine\utility.cpp" />
     <ClCompile Include="src\engine\ops\reshape.cpp" />
     <ClCompile Include="src\engine\ops\transpose.cpp" />
+    <ClCompile Include="src\engine\ops\concat.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\bench\bandwidth_suite.h">

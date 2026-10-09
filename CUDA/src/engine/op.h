@@ -26,6 +26,8 @@ namespace ohy {
 		const std::vector<TensorPtr>& in, OpContext& ctx);
 	std::vector<TensorPtr> OpTranspose(const onnx::NodeProto* node,
 		const std::vector<TensorPtr>& in, OpContext& ctx);
+	std::vector<TensorPtr> OpConcat(const onnx::NodeProto* node,
+		const std::vector<TensorPtr>& in, OpContext& ctx);
 
 	// Helpers
 

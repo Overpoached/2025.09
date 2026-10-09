@@ -335,6 +335,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\engine\engine.cpp" />
+    <ClCompile Include="src\engine\ops\concat.cpp" />
     <ClCompile Include="src\engine\ops\conv.cpp" />
     <ClCompile Include="src\engine\ops\reshape.cpp" />
     <ClCompile Include="src\engine\ops\transpose.cpp" />
