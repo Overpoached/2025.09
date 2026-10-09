@@ -13,6 +13,7 @@
 #include "tensor.h"
 #include "../kernels/kernel_utility.h"
 #include "op.h"
+#include "golden.h"
 
 namespace ohy {
 
@@ -191,6 +192,13 @@ namespace ohy {
 				throw std::runtime_error("Unsupported operation: " + node.op_type());
 			}
 			auto out = dispatch.at(node.op_type())(&node, in, ctx);
+			if (golden) {
+				for (int i = 0; i < node.output_size(); ++i) {
+					if (!golden->Check(node.output(i), node.op_type(), *out[i], ctx.stream)) {
+						throw std::runtime_error("Golden mismatch at node " + node.name());   // stop at first failure
+					}
+				}
+			}
 
 			for (int k = 0; k < node.output_size(); ++k) instance->env[node.output(k)] = out[k];
 
@@ -233,6 +241,10 @@ namespace ohy {
 		return ret;
 	}
 
+	void Engine::InitializeOutputCheck(const std::string& dir) {
+		golden = std::make_unique<Golden>(dir);
+		std::cout << "Loaded golden at " << dir << std::endl;
+	}
 
 	Instance::~Instance() = default;
 }

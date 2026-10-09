@@ -20,6 +20,7 @@ namespace onnx {
 namespace ohy {
 
 	class Instance;
+	class Golden;
 	/// <summary>
 	/// Represents the main engine for handling image processing and car model identification.
 	/// </summary>
@@ -32,6 +33,7 @@ namespace ohy {
 		/// </summary>
 		/// <param name="modelPath">The path to the model file.</param>
 		void Initialize(const std::string& modelPath);
+		void InitializeOutputCheck(const std::string& dir);
 		void Shutdown();
 		/// <summary>
 		/// Processes the input image and returns the identified car model.
@@ -51,6 +53,7 @@ namespace ohy {
 		bool isInitialized = false;  // Flag to check if the engine is initialized
 		std::unique_ptr< Instance > instance;
 		std::map<std::string, OpFn> dispatch; // Dispatch map for node processing
+		std::unique_ptr<Golden> golden;
 	};
 
 

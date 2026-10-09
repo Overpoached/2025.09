@@ -370,6 +370,7 @@
     <ClInclude Include="src\kernels\kernel_utility.h" />
     <ClInclude Include="src\kernels\nn\nn.h" />
     <ClInclude Include="src\kernels\memory\vector_add.h" />
+    <ClInclude Include="src\engine\golden.h" />
     <ClInclude Include="src\test\test.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -41,6 +41,7 @@ struct Options {
 	// Engine use options
 	std::string model_path = "./model/model.onnx";  // Default model path
     std::string image_path = "./images/test.jpg";  // Default image path
+    std::string golden_path = "";  // golden path
 };
 
 void PrintUsage(std::ostream& out) {
@@ -152,6 +153,8 @@ Options ParseArgs(int argc, char** argv, bool* should_exit) {
         //    options.image_path = ParseSizeList(TakeValue(argc, argv, i, "--sizes"));
         } else if (arg == "--image") {
             options.image_path = TakeValue(argc, argv, i, "--image");
+        } else if (arg == "--golden") {
+            options.golden_path = TakeValue(argc, argv, i, "--golden");
         } else if (!arg.empty() && arg[0] == '-') {
             throw std::runtime_error("unrecognised option: " + arg);
         } else {
@@ -275,6 +278,7 @@ int RunBench(const Options& options) {
 int RunEngine(const Options& options) {
     ohy::Engine engine;
     engine.Initialize(options.model_path);  // Default path
+    engine.InitializeOutputCheck(options.golden_path);
     std::string result = engine.ProcessImage(options.image_path);
     std::cout << "Identified car model: " << result << "\n";
 
