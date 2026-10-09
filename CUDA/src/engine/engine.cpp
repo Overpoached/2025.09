@@ -4,6 +4,7 @@
 #include <fstream>
 #include <filesystem>
 #include <set>
+#include <iomanip>
 
 //Ensure #define ONNX_ML is defined in configuration to include the ONNX ML operators in the generated protobuf code
 #include <onnx/onnx_pb.h>
@@ -228,9 +229,39 @@ namespace ohy {
 		dispatch["Reshape"] = OpReshape;
 		dispatch["Transpose"] = OpTranspose;
 		dispatch["Concat"] = OpConcat;
+		dispatch["Add"] = OpAdd;
 		// ... all 14. Anything else -> dispatch.at() throws -> "fail loudly"
 
 		std::cout << "Initialized dispatch for supported operations." << std::endl;
+
+		// Check how many ops are not implemented
+		std::map<std::string, int> nodeCounts;
+		const onnx::GraphProto& graph = instance->model->graph();
+		for (const auto& node : graph.node()) {
+			if (nodeCounts.contains(node.op_type())) {
+				nodeCounts.at(node.op_type())++;
+			}
+			else {
+				nodeCounts[node.op_type()] = 1;
+			}
+		}
+
+		int okNodes = 0, notOkNode = 0, okOp = 0, notOkOp = 0;
+		for (auto& entry : nodeCounts) {
+			if (dispatch.contains(entry.first)) {
+				okOp++;
+				okNodes += entry.second;
+			}
+			else {
+				notOkOp++;
+				notOkNode += entry.second;
+			}
+		}
+		std::cout << std::setprecision(2) << "Implemented operations: " << okOp << "/" << okOp + notOkOp
+			<< " (" << (float)okOp / (float)(okOp + notOkOp) * 100.0f << "%)" << std::endl
+			<< "Implemented nodes: " << okNodes << "/" << okNodes + notOkNode
+			<< " (" << (float)okNodes / (float)(okNodes + notOkNode) * 100.0f << "%)" << std::endl;
+
 		return true;
 	}
 

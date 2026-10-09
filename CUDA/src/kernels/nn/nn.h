@@ -33,4 +33,15 @@ namespace kernels {
 		int64_t inStrides[kMaxTransposeRank];     // input stride for each OUTPUT axis: inStride[perm[i]]
 	};
 	void Transpose(const float* x, float* y, const TransposeShape& shape, cudaStream_t stream);
+
+	// Broadcast binary ops (numpy rules, as ONNX Add/Mul/Sub/Div)
+	constexpr int kMaxBroadcastRank = 6;
+	struct BroadcastShape {
+		int32_t rank;
+		int64_t n;                                   // output elements
+		int64_t outDims[kMaxBroadcastRank];
+		int64_t aStrides[kMaxBroadcastRank];         // 0 on axes where a is broadcast
+		int64_t bStrides[kMaxBroadcastRank];         // 0 on axes where b is broadcast
+	};
+	void AddBroadcast(const float* a, const float* b, float* y, const BroadcastShape& shape, cudaStream_t stream);
 }
