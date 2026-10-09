@@ -1,6 +1,5 @@
 #include "../op.h"
 
-// elementwise operations: Add, Sub, Mul, Div, Pow, Min, Max, And, Or, Xor
 #include "../datatypes.h"
 #include "../../kernels/nn/nn.h"
 #include <onnx/onnx_pb.h>
@@ -41,10 +40,10 @@ namespace ohy {
         const int64_t yh = (xrows + pad_attr[0] + pad_attr[2] - wrows) / stride_attr[0] + 1;
 
         // TODO: consider copy as value for pad and stride
-        auto pad = CreateTensor(DataType::INT64, { 1, 4 }, reinterpret_cast<char*>(pad_attr.data()), pad_attr.size() * sizeof(decltype(pad_attr)::value_type));
-        auto stride = CreateTensor(DataType::INT64, { 1, 2 }, reinterpret_cast<char*>(stride_attr.data()), stride_attr.size() * sizeof(decltype(stride_attr)::value_type));
+        auto pad = CreateTensor(Location::Device, DataType::INT64, { 4 }, reinterpret_cast<char*>(pad_attr.data()), pad_attr.size() * sizeof(decltype(pad_attr)::value_type));
+        auto stride = CreateTensor(Location::Device, DataType::INT64, { 2 }, reinterpret_cast<char*>(stride_attr.data()), stride_attr.size() * sizeof(decltype(stride_attr)::value_type));
 
-        auto out = CreateTensor(DataType::FLOAT32, { yh, yw }, nullptr, yw * yh * sizeof(float)); // shape of output influenced by stride
+        auto out = CreateTensor(Location::Device, DataType::FLOAT32, { yh, yw }, nullptr, yw * yh * sizeof(float)); // shape of output influenced by stride
 
         kernels::ConvShape shapes;
         shapes.xbatch = in[0]->shape[0];

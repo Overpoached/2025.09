@@ -90,8 +90,8 @@ namespace test {
 		x[2] = 0.0f;
 
 		const size_t bytes = n * sizeof(float);
-		ohy::DeviceBuffer d_x(reinterpret_cast<const char*>(x.data()), bytes);
-		ohy::DeviceBuffer d_y(bytes);
+		ohy::Buffer d_x(ohy::Location::Device, reinterpret_cast<const char*>(x.data()), bytes);
+		ohy::Buffer d_y(ohy::Location::Device, bytes);
 
 		kernels::Sigmoid(static_cast<const float*>(d_x.ptr), static_cast<float*>(d_y.ptr), n, 0);
 		CUDA_CHECK(cudaDeviceSynchronize());           // surfaces errors from inside the kernel
@@ -123,11 +123,11 @@ namespace test {
 		const int64_t yw = (xcols + pad[1] + pad[3] - wcols) / stride[1] + 1;
 		const int64_t yh = (xrows + pad[0] + pad[2] - wrows) / stride[0] + 1;
 		const size_t ybytes = yw * yh * sizeof(float);
-		ohy::DeviceBuffer d_x(reinterpret_cast<const char*>(x.data()), x.size() * sizeof(float));
-		ohy::DeviceBuffer d_w(reinterpret_cast<const char*>(w.data()), w.size() * sizeof(float));
-		ohy::DeviceBuffer d_p(reinterpret_cast<const char*>(pad.data()), pad.size() * sizeof(int64_t));
-		ohy::DeviceBuffer d_s(reinterpret_cast<const char*>(stride.data()), stride.size() * sizeof(int64_t));
-		ohy::DeviceBuffer d_y(ybytes);
+		ohy::Buffer d_x(ohy::Location::Device, reinterpret_cast<const char*>(x.data()), x.size() * sizeof(float));
+		ohy::Buffer d_w(ohy::Location::Device, reinterpret_cast<const char*>(w.data()), w.size() * sizeof(float));
+		ohy::Buffer d_p(ohy::Location::Device, reinterpret_cast<const char*>(pad.data()), pad.size() * sizeof(int64_t));
+		ohy::Buffer d_s(ohy::Location::Device, reinterpret_cast<const char*>(stride.data()), stride.size() * sizeof(int64_t));
+		ohy::Buffer d_y(ohy::Location::Device, ybytes);
 
 		kernels::ConvShape shapes;
 		shapes.xbatch = shapes.ybatch = 1;

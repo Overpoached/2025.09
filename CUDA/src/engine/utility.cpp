@@ -105,20 +105,44 @@ namespace ohy::utility {
 		std::string padstr(static_cast<size_t>(pad), ' ');
 		ss << padstr << "Node: " << node.name()
 			<< "\n" << padstr << "  Type: " << node.op_type()
-			<< "\n" << padstr << "  Inputs: " << node.input_size()
-			<< "\n" << padstr << "  Outputs: " << node.output_size()
-			<< "\n" << padstr << "  Attributes: " << node.attribute_size()
-			<< "\n" << padstr << "  [";
-		for (int i = 0; i < node.attribute_size(); ++i) {
-			ss << "\n" << padstr << ToString(node.attribute(i), pad + 2 + 2);
+			<< "\n" << padstr << "  Inputs: " << node.input_size();
+		ss << "\n" << padstr << "    [";
+		for (int i = 0; i < node.input_size(); ++i) {
+			if (i > 0) ss << ", ";
+			ss << node.input(i);
 		}
-		ss << "\n" << padstr << "  ]";
+		ss << "]";
+		ss << "\n" << padstr << "  Outputs: " << node.output_size();
+		ss << "\n" << padstr << "    [";
+		for (int i = 0; i < node.output_size(); ++i) {
+			if (i > 0) ss << ", ";
+			ss << node.output(i);
+		}
+		ss << "]";
+		ss << "\n" << padstr << "  Attributes: " << node.attribute_size();
+		if (node.attribute_size() > 0) {
+			ss << "\n" << padstr << "  [";
+			for (int i = 0; i < node.attribute_size(); ++i) {
+				ss << "\n" << padstr << ToString(node.attribute(i), pad + 2 + 2);
+			}
+			ss << "\n" << padstr << "  ]";
+		}
+
 		return ss.str();
 	}
 	std::string ToString(const onnx::TensorProto& tensor, uint32_t pad) {
 		std::stringstream ss;
 		std::string padstr(static_cast<size_t>(pad), ' ');
 		ss << padstr << "Tensor: " << tensor.name();
+		ss << "\n" << padstr << "  Datatype: " << tensor.data_type();
+		ss << "\n" << padstr << "  Dims: " << tensor.dims().size();
+		ss << "\n" << padstr << "    [";
+		for (int i = 0; i < tensor.dims().size(); ++i) {
+			if (i > 0) ss << ", ";
+			ss << tensor.dims(i);
+		}
+		ss << "]";
+		ss << "\n" << padstr << "  raw_data: " << tensor.raw_data().size();
 		return ss.str();
 	}
 }

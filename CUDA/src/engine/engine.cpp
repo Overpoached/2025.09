@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include <set>
 
 //Ensure #define ONNX_ML is defined in configuration to include the ONNX ML operators in the generated protobuf code
 #include <onnx/onnx_pb.h>
@@ -55,11 +56,6 @@ namespace ohy {
 		std::cout << "Graph Name: " << graph.name() << std::endl;
 		std::cout << "Number of Nodes (Layers): " << graph.node_size() << std::endl;
 
-		// Initialize
-		for (auto& init : graph.initializer()) {
-			//std::cout << utility::ToString(init) << std::endl;
-			instance->env[init.name()] = CreateTensorFromONNX(&init);
-		}
 		std::cout << "Inputs:" << std::endl;
 		for (int i = 0; i < graph.input_size(); ++i) {
 			instance->input_names.push_back(graph.input(i).name());
@@ -74,15 +70,54 @@ namespace ohy {
 		}
 
 		std::cout << "\nDetails:" << std::endl;
-		for (const auto& init : instance->model->graph().initializer()) {
-			// weights 
-			// init.name(), init.dims(), init.raw_data()  -> compare against manifest "initializers"
-			std::cout << "Initializer: " << init.name() << ", dims: " << init.dims().size() << ", datatype: " << init.data_type() << ", raw_data: " << init.raw_data().size() << std::endl;
-		}
-		for (const auto& node : instance->model->graph().node()) {
+
+		std::set<std::string> host_initializers;
+		// Create consumer map from nodes to get inputs that need to be stored in host side
+		for (const auto& node : graph.node()) {
 			// 479 nodes, already in execution order
-			std::cout << "Node: " << node.op_type() << ", inputs: " << node.input().size() << ", outputs: " << node.output().size() << ", attributes: " << node.attribute().size() << std::endl;
+			std::cout << utility::ToString(node) << std::endl;
+
+			if (ohy::host_op_index_map.contains(node.op_type())) {
+				auto indices = ohy::host_op_index_map.at(node.op_type());
+				for (size_t i = 0; i < indices.size(); ++i) {
+					if (i >= node.input_size()) {
+						throw std::runtime_error("Could not get input index from node. " + 
+							node.op_type() + ": " + 
+							node.name() + "-" +
+							node.input(static_cast<int>(i)) + "-" + 
+							std::to_string(i));
+					}
+					host_initializers.insert(node.input(static_cast<int>(indices[i])));
+				}
+			}
+			else {
+				// ensure inputs all not in host init set
+				for (int i = 0; i < node.input_size(); ++i) {
+					if (host_initializers.contains(node.input(i))) {
+						throw std::runtime_error("Device data in host list. " + 
+							node.op_type() + ": " + 
+							node.name() + "-" + 
+							node.input(static_cast<int>(i)) + "-" + 
+							std::to_string(i));
+					}
+				}
+			}
 		}
+
+		std::cout << "Host initializer: " << host_initializers.size() << std::endl;
+
+		// Initialize
+		for (auto& init : graph.initializer()) {
+			//std::cout << utility::ToString(init) << std::endl;
+			std::cout << utility::ToString(init) << std::endl;
+
+			Location bufferLoc = Location::Device;
+			if (host_initializers.contains(init.name())) {
+				bufferLoc = Location::Host;
+			}
+			instance->env[init.name()] = CreateTensorFromONNX(&init, bufferLoc);
+		}
+
 
 		InitDispatch();
 
@@ -133,7 +168,7 @@ namespace ohy {
 		{
 			auto input_unit = std::make_shared<Tensor>();
 			input_unit->dtype = DataType::FLOAT32;
-			input_unit->storage = std::make_shared<DeviceBuffer>(reinterpret_cast<const char*>(host.data()), host.size() * sizeof(float));
+			input_unit->storage = std::make_shared<Buffer>(Location::Device, reinterpret_cast<const char*>(host.data()), host.size() * sizeof(float));
 			input_unit->shape = { 4, 3, 224, 224 }; // Assuming the input shape is [batch_size, channels, height, width]
 			instance->env[instance->input_names[0]] = std::move(input_unit);
 		}
@@ -182,14 +217,16 @@ namespace ohy {
 		return true;
 	}
 
-	TensorPtr Engine::CreateTensorFromONNX(const onnx::TensorProto* tensorProto) const {
+	TensorPtr Engine::CreateTensorFromONNX(const onnx::TensorProto* tensorProto,
+		Location bufferLoc) const
+	{
 		if (tensorProto == nullptr) {
 			throw std::runtime_error("TensorProto is null");
 		}
 		auto shape = std::vector<int64_t>(tensorProto->dims().begin(), tensorProto->dims().end());
 		auto host_i64 = std::vector<int64_t>(tensorProto->int64_data().begin(), tensorProto->int64_data().end());
 		auto type = utility::ONNXDataTypeToDataType(tensorProto->data_type());
-		auto ret = ohy::CreateTensor(type, shape, tensorProto->raw_data().data(), tensorProto->raw_data().size());
+		auto ret = ohy::CreateTensor(bufferLoc, type, shape, tensorProto->raw_data().data(), tensorProto->raw_data().size());
 		return ret;
 	}
 

@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <set>
 
 #include "datatypes.h"
 #include "tensor.h"
@@ -43,7 +44,8 @@ namespace ohy {
 
 		bool InitDispatch();
 
-		TensorPtr CreateTensorFromONNX(const onnx::TensorProto* tensorProto) const;
+		TensorPtr CreateTensorFromONNX(const onnx::TensorProto* tensorProto,
+			Location bufferLoc) const;
 
 	private:
 		bool isInitialized = false;  // Flag to check if the engine is initialized
