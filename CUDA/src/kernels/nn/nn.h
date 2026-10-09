@@ -23,4 +23,14 @@ namespace kernels {
 				float* y,
 				const ConvShape& shapes,
 				cudaStream_t stream);
+
+	// Transpose
+	constexpr int kMaxTransposeRank = 6;
+	struct TransposeShape {
+		int32_t rank;
+		int64_t n;                                // total elements
+		int64_t outDims[kMaxTransposeRank];       // output shape
+		int64_t inStrides[kMaxTransposeRank];     // input stride for each OUTPUT axis: inStride[perm[i]]
+	};
+	void Transpose(const float* x, float* y, const TransposeShape& shape, cudaStream_t stream);
 }

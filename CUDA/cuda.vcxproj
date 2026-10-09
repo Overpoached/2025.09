@@ -332,6 +332,7 @@
     </CudaCompile>
     <CudaCompile Include="src\kernels\nn\conv.cu" />
     <CudaCompile Include="src\kernels\nn\elementop.cu" />
+    <CudaCompile Include="src\kernels\nn\transpose.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\engine\engine.cpp" />
