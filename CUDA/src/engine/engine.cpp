@@ -212,6 +212,7 @@ namespace ohy {
 		//dispatch["Reshape"] = OpReshape;
 		dispatch["Conv"] = OpConv;
 		dispatch["Reshape"] = OpReshape;
+		dispatch["Transpose"] = OpTranspose;
 		// ... all 14. Anything else -> dispatch.at() throws -> "fail loudly"
 
 		std::cout << "Initialized dispatch for supported operations." << std::endl;

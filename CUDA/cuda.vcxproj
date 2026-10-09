@@ -337,6 +337,7 @@
     <ClCompile Include="src\engine\engine.cpp" />
     <ClCompile Include="src\engine\ops\conv.cpp" />
     <ClCompile Include="src\engine\ops\reshape.cpp" />
+    <ClCompile Include="src\engine\ops\transpose.cpp" />
     <ClCompile Include="src\engine\tensor.cpp" />
     <ClCompile Include="src\engine\utility.cpp" />
     <ClCompile Include="src\main.cpp" />
