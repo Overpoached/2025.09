@@ -12,9 +12,9 @@ namespace kernels {
 
 	// Convolution operation
 	struct ConvShape {
-		int64_t xchannels, xrows, xcols;
-		int64_t wchannels, wrows, wcols;
-		int64_t ychannels, yrows, ycols;
+		int64_t xbatch, xchannels, xrows, xcols;
+		int64_t wcount, wchannels, wrows, wcols;
+		int64_t ybatch, ychannels, yrows, ycols;
 	};
 	void Conv(const float* x,
 				const float* w, 

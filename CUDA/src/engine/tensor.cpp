@@ -51,8 +51,15 @@ namespace ohy {
 		return tensor;
 	}
 	TensorPtr CreateTensor(DataType dtype, const std::vector<int64_t>& shape, const char* data, size_t n) {
-		TensorPtr tensor = CreateTensor(dtype, shape);
-		tensor->storage = std::make_shared<DeviceBuffer>(data, n);
+		TensorPtr tensor = std::make_shared<Tensor>();
+		tensor->dtype = dtype;
+		tensor->shape = shape;
+		if (data) {
+			tensor->storage = std::make_shared<DeviceBuffer>(data, n);
+		}
+		else {
+			tensor->storage = std::make_shared<DeviceBuffer>(n);
+		}
 		return tensor;
 	}
 }

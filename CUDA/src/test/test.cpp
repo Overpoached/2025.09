@@ -119,10 +119,9 @@ namespace test {
 		const std::vector<float>& r,
 		bool print_result = false)
 	{
-		const int64_t woffset = (wcols / 2) * 2 - pad[1] - pad[3];
-		const int64_t hoffset = (wrows / 2) * 2 - pad[0] - pad[2];
-		const int64_t yw = (xcols - woffset + stride[1] - 1) / stride[1];
-		const int64_t yh = (xrows - hoffset + stride[0] - 1) / stride[0];
+		// out = (in + padBegin + padEnd - K) / stride + 1
+		const int64_t yw = (xcols + pad[1] + pad[3] - wcols) / stride[1] + 1;
+		const int64_t yh = (xrows + pad[0] + pad[2] - wrows) / stride[0] + 1;
 		const size_t ybytes = yw * yh * sizeof(float);
 		ohy::DeviceBuffer d_x(reinterpret_cast<const char*>(x.data()), x.size() * sizeof(float));
 		ohy::DeviceBuffer d_w(reinterpret_cast<const char*>(w.data()), w.size() * sizeof(float));
@@ -131,9 +130,11 @@ namespace test {
 		ohy::DeviceBuffer d_y(ybytes);
 
 		kernels::ConvShape shapes;
+		shapes.xbatch = shapes.ybatch = 1;
 		shapes.xchannels = 1;
 		shapes.xrows = xrows;
 		shapes.xcols = xcols;
+		shapes.wcount = 1;
 		shapes.wrows = wrows;
 		shapes.wcols = wcols;
 		shapes.yrows = yh;
