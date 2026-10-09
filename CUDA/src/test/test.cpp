@@ -137,16 +137,21 @@ namespace test {
 		shapes.wcount = 1;
 		shapes.wrows = wrows;
 		shapes.wcols = wcols;
+		shapes.ychannels = shapes.wcount;
 		shapes.yrows = yh;
 		shapes.ycols = yw;
+		shapes.uppad = pad[0];
+		shapes.leftpad = pad[1];
+		shapes.downpad = pad[2];
+		shapes.rightpad = pad[3];
+		shapes.rowstride = stride[0];
+		shapes.colstride = stride[1];
 		kernels::Conv(static_cast<const float*>(d_x.ptr),
 			static_cast<float*>(d_w.ptr),
-			static_cast<float*>(d_y.ptr), shapes,
-			static_cast<int64_t*>(d_p.ptr), pad.size(),
-			static_cast<int64_t*>(d_s.ptr), stride.size(), 0);
+			static_cast<float*>(d_y.ptr), shapes, 0);
 		CUDA_CHECK(cudaDeviceSynchronize());           // surfaces errors from inside the kernel
 
-		std::vector<float> y(yw * yh);
+		std::vector<float> y(shapes.xchannels * shapes.wcount * yw * yh);
 		CUDA_CHECK(cudaMemcpy(y.data(), d_y.ptr, ybytes, cudaMemcpyDeviceToHost));
 
 		if (print_result) {

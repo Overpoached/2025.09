@@ -15,14 +15,12 @@ namespace kernels {
 		int64_t xbatch, xchannels, xrows, xcols;
 		int64_t wcount, wchannels, wrows, wcols;
 		int64_t ybatch, ychannels, yrows, ycols;
+		int64_t uppad, leftpad, downpad, rightpad;	// ONNX order: [top, left, bottom, right]
+		int64_t rowstride, colstride;				// [row, col]
 	};
 	void Conv(const float* x,
 				const float* w, 
 				float* y,
 				const ConvShape& shapes,
-				const int64_t* pad,		//up, right, down, left
-				int64_t npad,
-				const int64_t* stride,	//row x col (h x w)
-				int64_t nstride,
 				cudaStream_t stream);
 }

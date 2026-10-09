@@ -9,7 +9,7 @@ namespace ohy {
     std::vector<TensorPtr> OpConv(const onnx::NodeProto* node,
         const std::vector<TensorPtr>& in, OpContext& ctx) {
 
-        std::cout << utility::ToString(*node) << std::endl;
+        //std::cout << utility::ToString(*node) << std::endl;
 
         if (in.size() != 2) {
             throw std::runtime_error("Conv: expected 2 inputs (data and weights), node " + node->name());
@@ -39,11 +39,6 @@ namespace ohy {
         const int64_t yw = (xcols + pad_attr[1] + pad_attr[3] - wcols) / stride_attr[1] + 1;
         const int64_t yh = (xrows + pad_attr[0] + pad_attr[2] - wrows) / stride_attr[0] + 1;
 
-        // TODO: consider copy as value for pad and stride
-        auto pad = CreateTensor(Location::Device, DataType::INT64, { 4 }, reinterpret_cast<char*>(pad_attr.data()), pad_attr.size() * sizeof(decltype(pad_attr)::value_type));
-        auto stride = CreateTensor(Location::Device, DataType::INT64, { 2 }, reinterpret_cast<char*>(stride_attr.data()), stride_attr.size() * sizeof(decltype(stride_attr)::value_type));
-
-        auto out = CreateTensor(Location::Device, DataType::FLOAT32, { yh, yw }, nullptr, yw * yh * sizeof(float)); // shape of output influenced by stride
 
         kernels::ConvShape shapes;
         shapes.xbatch = in[0]->shape[0];
@@ -58,7 +53,16 @@ namespace ohy {
         shapes.ychannels = shapes.wcount;
         shapes.yrows = yh;
         shapes.ycols = yw;
-        kernels::Conv(in[0]->f32(), in[1]->f32(), out->f32(), shapes, pad->i64(), pad->numel(), stride->i64(), stride->numel(), ctx.stream);
+        shapes.uppad = pad_attr[0];
+        shapes.leftpad = pad_attr[1];
+        shapes.downpad = pad_attr[2];
+        shapes.rightpad = pad_attr[3];
+        shapes.rowstride = stride_attr[0];
+        shapes.colstride = stride_attr[1];
+
+        auto out = CreateTensor(Location::Device, DataType::FLOAT32, { shapes.xbatch, shapes.wcount, yh, yw }, nullptr, shapes.xbatch * shapes.wcount * yw * yh * sizeof(float)); // shape of output influenced by stride
+
+        kernels::Conv(in[0]->f32(), in[1]->f32(), out->f32(), shapes, ctx.stream);
         return { out };
     }
 }
