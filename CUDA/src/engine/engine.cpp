@@ -223,8 +223,6 @@ namespace ohy {
 		dispatch.clear();
 
 		// Register dispatch functions for each supported operation
-		dispatch["Sigmoid"] = OpSigmoid;
-		//dispatch["Reshape"] = OpReshape;
 		dispatch["Conv"] = OpConv;
 		dispatch["Reshape"] = OpReshape;
 		dispatch["Transpose"] = OpTranspose;
@@ -232,6 +230,9 @@ namespace ohy {
 		dispatch["Add"] = OpAdd;
 		dispatch["LayerNormalization"] = OpLayerNormalization;
 		dispatch["MatMul"] = OpMatMul;
+		dispatch["Unsqueeze"] = OpUnsqueeze;
+		dispatch["Squeeze"] = OpSqueeze;
+		dispatch["Sigmoid"] = OpSigmoid;
 		// ... all 14. Anything else -> dispatch.at() throws -> "fail loudly"
 
 		std::cout << "Initialized dispatch for supported operations." << std::endl;

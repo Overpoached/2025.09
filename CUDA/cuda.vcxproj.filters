@@ -62,6 +62,8 @@
     <ClCompile Include="src\engine\ops\layernorm.cpp" />
     <ClCompile Include="src\engine\ops\gemm.cpp" />
     <ClCompile Include="src\engine\ops\matmul.cpp" />
+    <ClCompile Include="src\engine\ops\unsqueeze.cpp" />
+    <ClCompile Include="src\engine\ops\squeeze.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\bench\bandwidth_suite.h">

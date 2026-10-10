@@ -344,7 +344,9 @@
     <ClCompile Include="src\engine\ops\layernorm.cpp" />
     <ClCompile Include="src\engine\ops\matmul.cpp" />
     <ClCompile Include="src\engine\ops\reshape.cpp" />
+    <ClCompile Include="src\engine\ops\squeeze.cpp" />
     <ClCompile Include="src\engine\ops\transpose.cpp" />
+    <ClCompile Include="src\engine\ops\unsqueeze.cpp" />
     <ClCompile Include="src\engine\tensor.cpp" />
     <ClCompile Include="src\engine\utility.cpp" />
     <ClCompile Include="src\main.cpp" />

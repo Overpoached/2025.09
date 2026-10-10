@@ -34,6 +34,10 @@ namespace ohy {
 		const std::vector<TensorPtr>& in, OpContext& ctx);
 	std::vector<TensorPtr> OpGEMM(const onnx::NodeProto* node,
 		const std::vector<TensorPtr>& in, OpContext& ctx);
+	std::vector<TensorPtr> OpUnsqueeze(const onnx::NodeProto* node,
+		const std::vector<TensorPtr>& in, OpContext& ctx);
+	std::vector<TensorPtr> OpSqueeze(const onnx::NodeProto* node,
+		const std::vector<TensorPtr>& in, OpContext& ctx);
 	// Helpers
 
 }
