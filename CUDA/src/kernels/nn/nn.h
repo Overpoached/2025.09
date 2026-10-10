@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cuda_runtime.h>
-
+#include <vector>
 
 
 namespace kernels {
@@ -43,9 +43,25 @@ namespace kernels {
 		int64_t aStrides[kMaxBroadcastRank];         // 0 on axes where a is broadcast
 		int64_t bStrides[kMaxBroadcastRank];         // 0 on axes where b is broadcast
 	};
+	// a and b must have compatible shape
+	BroadcastShape MakeBroadcast(const std::vector<int64_t>& a, const std::vector<int64_t>& b, std::vector<int64_t>& outShape);
+	//BroadcastShape MakeGEMMBroadcast(const std::vector<int64_t>& a, const std::vector<int64_t>& b, std::vector<int64_t>& outShape);
 	void AddBroadcast(const float* a, const float* b, float* y, const BroadcastShape& shape, cudaStream_t stream);
 
 	// LayerNormalization over the last `cols` elements of each row. bias may be nullptr.
 	void LayerNorm(const float* x, const float* scale, const float* bias, float* y,
 		int64_t rows, int64_t cols, float epsilon, cudaStream_t stream);
+
+	// General Matrix Multiplication
+	struct GEMMShape {
+		int64_t batch = 1;
+		int64_t m, k, n;
+		int64_t batchStrideA = 0, batchStrideB = 0, batchStrideC = 0, batchStrideBias = 0;   // elements between consecutive matrices; 0 = shared
+		float alpha = 1.0f, beta = 1.0f;
+		int32_t transA = 0, transB = 0, hasC = 0;
+	};
+	kernels::GEMMShape MakeMatMulShape(std::vector<int64_t> a, std::vector<int64_t> b,
+		std::vector<int64_t>& outShape);
+	void GEMM(const float* a, const float* b, const float* bias, float* c, 
+		const GEMMShape& shape, cudaStream_t stream);
 }

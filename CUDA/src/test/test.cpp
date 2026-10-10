@@ -8,6 +8,9 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <memory>
+#include <random>
+#include <sstream>
 
 #include "../engine/tensor.h"
 #include "../engine/utility.h"
@@ -325,4 +328,308 @@ namespace test {
 
 		TestConv(x, 7, 5, w, 3, 3, pad, stride, r);
 	}
+
+	// ---------------------------------------------------------------------------------------
+// MatMul
+// ---------------------------------------------------------------------------------------
+//
+// Layouts (all row-major, contiguous):
+//   A    [batch, M, K]                        batch stride M*K
+//   B    [batch, K, N]   (transB = false)     batch stride K*N, or 0 when shareB
+//        [batch, N, K]   (transB = true)      i.e. B[k][n] lives at n*K + k  (ONNX Gemm transB=1)
+//   bias [N] or empty                         added to every row of C
+//   C    [batch, M, N]                        batch stride M*N
+
+	struct MatMulCase {
+		int64_t batch = 1, M = 0, N = 0, K = 0;
+		bool transB = false;
+		bool shareB = false;             // one B for all batches (ONNX: N-D activation x 2-D weight)
+		std::vector<float> a, b, bias;
+		std::vector<float> expected;
+		std::vector<double> tolerance;   // per element; empty -> 1e-6 (hand-written cases are exact)
+	};
+
+	// The only function that knows about your kernel. Adapt this call to your interface.
+	void LaunchMatMul(const kernels::GEMMShape& c, const float* dA, const float* dB, const float* dBias, float* dC) {
+
+		kernels::GEMM(dA, dB, dBias, dC, c, 0);
+	}
+
+	void RunMatMulCase(const MatMulCase& c, bool print_result = false) {
+		const size_t aCount = static_cast<size_t>(c.batch * c.M * c.K);
+		const size_t bCount = static_cast<size_t>((c.shareB ? 1 : c.batch) * c.K * c.N);
+		const size_t cCount = static_cast<size_t>(c.batch * c.M * c.N);
+		if (c.a.size() != aCount || c.b.size() != bCount || c.expected.size() != cCount
+			|| (!c.bias.empty() && c.bias.size() != static_cast<size_t>(c.N))) {
+			throw std::runtime_error("MatMulCase: data sizes do not match batch/M/N/K");   // bug in the test, not the kernel
+		}
+
+		ohy::Buffer dA(ohy::Location::Device, reinterpret_cast<const char*>(c.a.data()), aCount * sizeof(float));
+		ohy::Buffer dB(ohy::Location::Device, reinterpret_cast<const char*>(c.b.data()), bCount * sizeof(float));
+		std::unique_ptr<ohy::Buffer> dBias;
+		if (!c.bias.empty()) {
+			dBias = std::make_unique<ohy::Buffer>(ohy::Location::Device, reinterpret_cast<const char*>(c.bias.data()), c.bias.size() * sizeof(float));
+		}
+
+
+		std::vector<int64_t> ashape{ c.batch, c.M, c.K };
+		std::vector<int64_t> bshape{ c.shareB ? 1 : c.batch, c.K, c.N };
+		std::vector<int64_t> outShape;
+		kernels::GEMMShape shape = kernels::MakeMatMulShape(ashape, bshape, outShape);
+		shape.transB = c.transB;
+		shape.hasC = c.bias.empty() ? 0 : 1;
+
+		ohy::Buffer dC(ohy::Location::Device, cCount * sizeof(float));
+		CUDA_CHECK(cudaMemset(dC.ptr, 0xFF, cCount * sizeof(float)));   // NaN fill: any element the kernel skips fails
+
+		LaunchMatMul(shape, static_cast<const float*>(dA.ptr), static_cast<const float*>(dB.ptr),
+			dBias ? static_cast<const float*>(dBias->ptr) : nullptr, static_cast<float*>(dC.ptr));
+		CUDA_CHECK(cudaDeviceSynchronize());           // surfaces errors from inside the kernel
+
+		std::vector<float> got(cCount);
+		CUDA_CHECK(cudaMemcpy(got.data(), dC.ptr, cCount * sizeof(float), cudaMemcpyDeviceToHost));
+
+		if (print_result) {
+			std::cout << "result: " << c.batch << " batches\n";
+			for (int b = 0; b < c.batch; ++b) {
+				std::cout << b << ":\n[ ";
+				for (int j = 0; j < c.M; ++j) {
+					if (j > 0) std::cout << "\n";
+					for (int i = 0; i < c.N; ++i) {
+						if (i > 0) std::cout << ", ";
+						std::cout << got[b * c.M * c.N + j * c.N + i];
+					}
+				}
+				std::cout << " ]\n";
+			}
+				
+		}
+
+		for (size_t i = 0; i < cCount; ++i) {
+			const double tol = c.tolerance.empty() ? 1e-6 : c.tolerance[i];
+			const double diff = std::fabs(static_cast<double>(got[i]) - static_cast<double>(c.expected[i]));
+			if (!(diff <= tol)) {   // written this way so NaN fails too
+				const int64_t b = static_cast<int64_t>(i) / (c.M * c.N);
+				const int64_t r = (static_cast<int64_t>(i) / c.N) % c.M;
+				const int64_t col = static_cast<int64_t>(i) % c.N;
+				std::ostringstream os;
+				os.precision(9);
+				os << "[batch " << c.batch << ", M " << c.M << ", N " << c.N << ", K " << c.K
+					<< (c.transB ? ", transB" : "") << (c.shareB ? ", shareB" : "") << (c.bias.empty() ? "" : ", bias") << "] "
+					<< "C[" << b << "][" << r << "][" << col << "] got " << got[i] << ", expected " << c.expected[i]
+					<< " (diff " << diff << " > tol " << tol << ")";
+				throw detail::Failure(os.str());
+			}
+		}
+	}
+
+	// Random inputs in [-1, 1), expected computed in double.
+	// Tolerance is relative to sum|a*b| per element: fp32 accumulation error scales with it,
+	// while an indexing bug is off by O(1) and fails by orders of magnitude.
+	MatMulCase MakeRandomMatMulCase(int64_t batch, int64_t M, int64_t N, int64_t K,
+		bool transB = false, bool shareB = false, bool withBias = false, uint32_t seed = 1234)
+	{
+		MatMulCase c;
+		c.batch = batch; c.M = M; c.N = N; c.K = K;
+		c.transB = transB; c.shareB = shareB;
+
+		std::mt19937 rng(seed);
+		std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+		c.a.resize(static_cast<size_t>(batch * M * K));
+		for (auto& v : c.a) v = dist(rng);
+		c.b.resize(static_cast<size_t>((shareB ? 1 : batch) * K * N));
+		for (auto& v : c.b) v = dist(rng);
+		if (withBias) {
+			c.bias.resize(static_cast<size_t>(N));
+			for (auto& v : c.bias) v = dist(rng);
+		}
+
+		c.expected.resize(static_cast<size_t>(batch * M * N));
+		c.tolerance.resize(c.expected.size());
+		for (int64_t b = 0; b < batch; ++b) {
+			const float* A = c.a.data() + b * M * K;
+			const float* B = c.b.data() + (shareB ? 0 : b * K * N);
+			for (int64_t r = 0; r < M; ++r) {
+				for (int64_t col = 0; col < N; ++col) {
+					double sum = withBias ? c.bias[col] : 0.0;
+					double sumAbs = std::fabs(sum);
+					for (int64_t k = 0; k < K; ++k) {
+						const double bv = transB ? B[col * K + k] : B[k * N + col];
+						const double p = static_cast<double>(A[r * K + k]) * bv;
+						sum += p;
+						sumAbs += std::fabs(p);
+					}
+					const size_t i = static_cast<size_t>((b * M + r) * N + col);
+					c.expected[i] = static_cast<float>(sum);
+					c.tolerance[i] = 1e-5 * sumAbs + 1e-6;
+				}
+			}
+		}
+		return c;
+	}
+
+	// ---- Hand-written: small integer matrices, exact results ---------------------------
+
+	TEST_CASE(MatMulSquare2x2) {
+		MatMulCase c;
+		c.M = 2; c.N = 2; c.K = 2;
+		c.a = { 1, 2,
+				3, 4 };
+		c.b = { 5, 6,
+				7, 8 };
+		c.expected = { 19, 22,
+					   43, 50 };
+		RunMatMulCase(c);
+	}
+
+	// Non-square with M, N, K all different: swapping any two dimensions in the indexing fails this.
+	TEST_CASE(MatMulNonSquare2x3x4) {
+		MatMulCase c;
+		c.M = 2; c.N = 4; c.K = 3;
+		c.a = { 1, 2, 3,
+				4, 5, 6 };
+		c.b = { 1,  2,  3,  4,
+				5,  6,  7,  8,
+				9, 10, 11, 12 };
+		c.expected = { 38, 44,  50,  56,
+					   83, 98, 113, 128 };
+		RunMatMulCase(c);
+	}
+
+	// M = 1: a single row, like the final [4,768] x [768,512] projection when batch is 1.
+	TEST_CASE(MatMulRowVector) {
+		MatMulCase c;
+		c.M = 1; c.N = 2; c.K = 3;
+		c.a = { 1, 2, 3 };
+		c.b = { 1, 2,
+				3, 4,
+				5, 6 };
+		c.expected = { 22, 28 };
+		RunMatMulCase(c);
+	}
+
+	// K = 1: outer product. Catches loops that assume K is at least one tile.
+	TEST_CASE(MatMulOuterProductK1) {
+		MatMulCase c;
+		c.M = 3; c.N = 2; c.K = 1;
+		c.a = { 1,
+				2,
+				3 };
+		c.b = { 4, 5 };
+		c.expected = { 4,  5,
+						8, 10,
+					   12, 15 };
+		RunMatMulCase(c);
+	}
+
+	// Two independent multiplies with different A AND different B (attention: Q x K^T per head).
+	// A batch-stride bug typically gives the right answer for batch 0 and wrong for batch 1.
+	TEST_CASE(MatMulBatched) {
+		MatMulCase c;
+		c.batch = 2; c.M = 2; c.N = 2; c.K = 2;
+		c.a = { 1, 2,   3, 4,      // batch 0
+				2, 0,   1, 1 };    // batch 1
+		c.b = { 5, 6,   7, 8,      // batch 0
+				1, 2,   3, 4 };    // batch 1
+		c.expected = { 19, 22,   43, 50,
+						2,  4,    4,  6 };
+		RunMatMulCase(c);
+	}
+
+	// Same B for every batch item (activation [2,2,3] x weight [3,2]). Must equal the flattened M=4 case below.
+	TEST_CASE(MatMulSharedB) {
+		MatMulCase c;
+		c.batch = 2; c.M = 2; c.N = 2; c.K = 3;
+		c.shareB = true;
+		c.a = { 1,  2,  3,    4,  5,  6,      // batch 0
+				 7,  8,  9,   10, 11, 12 };    // batch 1
+		c.b = { 1, 2,
+				3, 4,
+				5, 6 };
+		c.expected = { 22,  28,   49,  64,
+					   76, 100,  103, 136 };
+		RunMatMulCase(c);
+	}
+
+	// Same data as MatMulSharedB with the leading dims collapsed into M: the "flatten" path.
+	TEST_CASE(MatMulFlattenedLeadingDims) {
+		MatMulCase c;
+		c.M = 4; c.N = 2; c.K = 3;
+		c.a = { 1,  2,  3,
+				 4,  5,  6,
+				 7,  8,  9,
+				10, 11, 12 };
+		c.b = { 1, 2,
+				3, 4,
+				5, 6 };
+		c.expected = { 22,  28,
+					   49,  64,
+					   76, 100,
+					  103, 136 };
+		RunMatMulCase(c);
+	}
+
+	// Gemm transB=1: same maths as MatMulNonSquare2x3x4, but B is stored as [N, K].
+	TEST_CASE(MatMulTransB) {
+		MatMulCase c;
+		c.M = 2; c.N = 4; c.K = 3;
+		c.transB = true;
+		c.a = { 1, 2, 3,
+				4, 5, 6 };
+		c.b = { 1, 5,  9,      // column 0 of the original B
+				2, 6, 10,	   // { 1, 2, 3, 4
+				3, 7, 11,	   //   5, 6, 7, 8
+				4, 8, 12 };    //   9, 10, 11, 12 };
+		c.expected = { 38, 44,  50,  56,
+					   83, 98, 113, 128 };
+		RunMatMulCase(c);
+	}
+
+	// Gemm as CLIP uses it: transB=1 plus a per-column bias. A per-row bias (wrong) gives different numbers.
+	TEST_CASE(MatMulTransBBias) {
+		MatMulCase c;
+		c.M = 2; c.N = 4; c.K = 3;
+		c.transB = true;
+		c.a = { 1, 2, 3,
+				4, 5, 6 };
+		c.b = { 1, 5,  9,
+				2, 6, 10,
+				3, 7, 11,
+				4, 8, 12 };
+		c.bias = { 1, -2, 10, 0.5f };
+		c.expected = { 39, 42,  60,  56.5f,
+					   84, 96, 123, 128.5f };
+		RunMatMulCase(c, true);
+	}
+
+	// ---- Generated: awkward sizes (tile edges) ------------------------------------------
+
+	TEST_CASE(MatMulRandomEdgeSizes) {
+		const int64_t sizes[][3] = {   // M, N, K
+			{   1,   1,   1 },
+			{  17,  19,  23 },         // all smaller than any tile
+			{  31,  33,  65 },         // one either side of 32, just over 64
+			{  64,  64,  64 },         // exact multiple: should pass even if edges are broken
+			{  65, 127, 129 },         // one past a tile boundary in every dimension
+			{ 197, 131,  73 },         // primes
+		};
+		for (const auto& s : sizes) {
+			RunMatMulCase(MakeRandomMatMulCase(1, s[0], s[1], s[2]));
+			RunMatMulCase(MakeRandomMatMulCase(1, s[0], s[1], s[2], /*transB*/ true, false, /*bias*/ true));
+			RunMatMulCase(MakeRandomMatMulCase(3, s[0], s[1], s[2]));                   // batched
+			RunMatMulCase(MakeRandomMatMulCase(3, s[0], s[1], s[2], false, /*shareB*/ true));
+		}
+	}
+
+	// ---- Generated: the exact shapes CLIP ViT-B/32 runs at batch 4 -----------------------
+	// The CPU reference is slow in Debug (a few seconds each); run these in Release if it bothers you.
+
+	TEST_CASE(MatMulClipQkvProjection) { RunMatMulCase(MakeRandomMatMulCase(1, 200, 2304, 768)); }
+	TEST_CASE(MatMulClipOutProjection) { RunMatMulCase(MakeRandomMatMulCase(1, 200, 768, 768, true, false, true)); }
+	TEST_CASE(MatMulClipMlpExpand) { RunMatMulCase(MakeRandomMatMulCase(1, 200, 3072, 768)); }
+	TEST_CASE(MatMulClipMlpContract) { RunMatMulCase(MakeRandomMatMulCase(1, 200, 768, 3072)); }
+	TEST_CASE(MatMulClipAttentionScores) { RunMatMulCase(MakeRandomMatMulCase(48, 50, 50, 64)); }
+	TEST_CASE(MatMulClipAttentionValues) { RunMatMulCase(MakeRandomMatMulCase(48, 50, 64, 50)); }
+	TEST_CASE(MatMulClipFinalProjection) { RunMatMulCase(MakeRandomMatMulCase(1, 4, 512, 768)); }
+
 }

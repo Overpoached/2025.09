@@ -2,7 +2,20 @@
 
 #include "../kernel_utility.h"
 
+#include <vector>
+
 namespace kernels {
+    namespace {
+        template <typename T>
+        std::string ToString(const std::vector<T>& vec, uint32_t pad = 0) {
+            std::string ret = "[";
+            for (auto& v : vec) {
+                if (ret.size() > 1) { ret += ", "; }
+                ret += std::to_string(v);
+            }
+            return ret + "]";
+        }
+    }
     __global__ void SigmoidKernel(const float* x, float* y, int64_t n) {
         int64_t i = blockIdx.x * int64_t(blockDim.x) + threadIdx.x;   // one thread per element
         if (i < n) y[i] = 1.0f / (1.0f + expf(-x[i]));
@@ -55,4 +68,39 @@ namespace kernels {
         AddBroadcastKernel << <blocks, kThreads, 0, stream >> > (a, b, y, shape);
         CUDA_CHECK(cudaGetLastError());
     }
+    // Numpy broadcast of a and b. Fills strides with 0 on broadcast axes. Throws on incompatible shapes.
+    kernels::BroadcastShape MakeBroadcast(const std::vector<int64_t>& a, const std::vector<int64_t>& b,
+        std::vector<int64_t>& outShape)
+    {
+        const int64_t rank = static_cast<int64_t>(std::max(a.size(), b.size()));
+        if (rank > kernels::kMaxBroadcastRank) {
+            throw std::runtime_error("Broadcast: rank too large");
+        }
+
+        // Right-align: pad the shorter shape with leading 1s
+        std::vector<int64_t> pa(rank - a.size(), 1), pb(rank - b.size(), 1);
+        pa.insert(pa.end(), a.begin(), a.end());
+        pb.insert(pb.end(), b.begin(), b.end());
+
+        kernels::BroadcastShape s{};
+        s.rank = static_cast<int32_t>(rank);
+        outShape.assign(rank, 1);
+        int64_t strideA = 1, strideB = 1;
+        for (int64_t d = rank - 1; d >= 0; --d) {
+            if (pa[d] != pb[d] && pa[d] != 1 && pb[d] != 1) {
+                throw std::runtime_error("Broadcast: incompatible shapes " + ToString(a)
+                    + " and " + ToString(b));
+            }
+            outShape[d] = std::max(pa[d], pb[d]);
+            s.outDims[d] = outShape[d];
+            s.aStrides[d] = (pa[d] == 1) ? 0 : strideA;   // size-1 axis: repeat the same element
+            s.bStrides[d] = (pb[d] == 1) ? 0 : strideB;
+            strideA *= pa[d];
+            strideB *= pb[d];
+        }
+        s.n = 1;
+        for (int64_t v : outShape) s.n *= v;
+        return s;
+    }
+
 }

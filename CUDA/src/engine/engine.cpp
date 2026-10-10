@@ -231,6 +231,7 @@ namespace ohy {
 		dispatch["Concat"] = OpConcat;
 		dispatch["Add"] = OpAdd;
 		dispatch["LayerNormalization"] = OpLayerNormalization;
+		dispatch["MatMul"] = OpMatMul;
 		// ... all 14. Anything else -> dispatch.at() throws -> "fail loudly"
 
 		std::cout << "Initialized dispatch for supported operations." << std::endl;

@@ -30,6 +30,10 @@ namespace ohy {
 		const std::vector<TensorPtr>& in, OpContext& ctx);
 	std::vector<TensorPtr> OpLayerNormalization(const onnx::NodeProto* node,
 		const std::vector<TensorPtr>& in, OpContext& ctx);
+	std::vector<TensorPtr> OpMatMul(const onnx::NodeProto* node,
+		const std::vector<TensorPtr>& in, OpContext& ctx);
+	std::vector<TensorPtr> OpGEMM(const onnx::NodeProto* node,
+		const std::vector<TensorPtr>& in, OpContext& ctx);
 	// Helpers
 
 }

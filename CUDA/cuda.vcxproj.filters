@@ -25,6 +25,7 @@
     <CudaCompile Include="src\kernels\nn\conv.cu" />
     <CudaCompile Include="src\kernels\nn\transpose.cu" />
     <CudaCompile Include="src\kernels\nn\layernorm.cu" />
+    <CudaCompile Include="src\kernels\nn\matmul.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
@@ -59,6 +60,8 @@
     <ClCompile Include="src\engine\ops\transpose.cpp" />
     <ClCompile Include="src\engine\ops\concat.cpp" />
     <ClCompile Include="src\engine\ops\layernorm.cpp" />
+    <ClCompile Include="src\engine\ops\gemm.cpp" />
+    <ClCompile Include="src\engine\ops\matmul.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\bench\bandwidth_suite.h">
