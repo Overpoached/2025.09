@@ -49,7 +49,8 @@ namespace ohy {
 		}
 
 		// Calculate infer index
-		newDim[inferIndex] = in[0]->numel() / dim;
+		if (inferIndex > -1)
+			newDim[inferIndex] = in[0]->numel() / dim;
 		
 		auto out = CreateTensor(Location::Device, DataType::FLOAT32, newDim, reinterpret_cast<char*>(in[0]->f32()), in[0]->numel() * sizeof(float)); // shape of output influenced by stride
 		return { out };
