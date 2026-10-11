@@ -632,4 +632,142 @@ namespace test {
 	TEST_CASE(MatMulClipAttentionValues) { RunMatMulCase(MakeRandomMatMulCase(48, 50, 64, 50)); }
 	TEST_CASE(MatMulClipFinalProjection) { RunMatMulCase(MakeRandomMatMulCase(1, 4, 512, 768)); }
 
+	void LaunchGather(const std::vector<float>& data,
+		const std::vector<int64_t>& datashape,
+		const std::vector<int64_t>& indices,
+		const std::vector<int64_t>& indicesshape,
+		int32_t axis,
+		const std::vector<float>& output,
+		bool print_result = false)
+	{
+		const int64_t rank = static_cast<int64_t>(datashape.size());
+		if (axis < 0) {
+			axis += static_cast<int32_t>(rank);
+		}
+		if (axis < 0 || axis >= rank) {
+			throw std::runtime_error("LaunchGather: axis out of range");   // bug in the test, not the kernel
+		}
+
+		// data viewed as [outer, axisDim, inner]
+		kernels::GatherShape shape{};
+		shape.outer = 1;
+		shape.inner = 1;
+		for (int64_t d = 0; d < axis; ++d) { shape.outer *= datashape[d]; }
+		for (int64_t d = axis + 1; d < rank; ++d) { shape.inner *= datashape[d]; }
+		shape.axisDim = datashape[axis];
+
+		size_t dataSize = 1, indicesSize = 1;
+		for (int64_t v : datashape) { dataSize *= static_cast<size_t>(v); }
+		for (int64_t v : indicesshape) { indicesSize *= static_cast<size_t>(v); }   // 1 for a scalar index ({})
+		shape.numIndices = static_cast<int64_t>(indicesSize);
+		shape.n = shape.outer * shape.numIndices * shape.inner;
+
+		// data.shape[:axis] + indices.shape + data.shape[axis+1:]
+		std::vector<int64_t> outShape = datashape;
+		auto pos = outShape.erase(outShape.begin() + axis);
+		outShape.insert(pos, indicesshape.begin(), indicesshape.end());
+
+		if (data.size() != dataSize || indices.size() != indicesSize || output.size() != static_cast<size_t>(shape.n)) {
+			throw std::runtime_error("LaunchGather: data/indices/output sizes do not match their shapes");
+		}
+
+		ohy::Buffer dA(ohy::Location::Device, reinterpret_cast<const char*>(data.data()), dataSize * sizeof(float));
+		ohy::Buffer dB(ohy::Location::Device, reinterpret_cast<const char*>(indices.data()), indicesSize * sizeof(int64_t));
+		ohy::Buffer dC(ohy::Location::Device, static_cast<size_t>(shape.n) * sizeof(float));   // (loc, n): allocate only
+		CUDA_CHECK(cudaMemset(dC.ptr, 0xFF, static_cast<size_t>(shape.n) * sizeof(float)));       // NaN fill: unwritten elements fail
+
+		kernels::Gather(static_cast<const float*>(dA.ptr), static_cast<const int64_t*>(dB.ptr),
+			static_cast<float*>(dC.ptr), shape, 0);
+		CUDA_CHECK(cudaDeviceSynchronize());           // surfaces errors from inside the kernel
+
+		std::vector<float> got(static_cast<size_t>(shape.n));
+		CUDA_CHECK(cudaMemcpy(got.data(), dC.ptr, got.size() * sizeof(float), cudaMemcpyDeviceToHost));
+
+		if (print_result) {
+			std::cout << "out shape " << ohy::utility::ToString(outShape) << "\n" << ohy::utility::ToString(got) << std::endl;
+		}
+
+		for (size_t i = 0; i < got.size(); ++i) {
+			EXPECT_NEAR(got[i], output[i], 1e-6);   // pure copy: should be exact
+		}
+	}
+
+	TEST_CASE(Gather) {
+		std::vector<int64_t> datashape{ 3, 2 };
+		std::vector<int64_t> indicesshape{ 2, 2 };
+		//std::vector<int64_t> outputshape{ 2, 2, 2 };
+
+		std::vector<float> data{
+			1.0, 1.2,
+			2.3, 3.4,
+			4.5, 5.7,
+		};
+		std::vector<int64_t>indices{
+			0, 1,
+			1, 2,
+		};
+		int32_t axis = 0;
+		std::vector<float> output {
+				1.0, 1.2,
+				2.3, 3.4,
+				2.3, 3.4,
+				4.5, 5.7,
+		};
+
+		LaunchGather(data, datashape, indices, indicesshape, axis, output);
+	}
+
+	TEST_CASE(GatherAxis) {
+		std::vector<int64_t> datashape{ 3, 3 };
+		std::vector<int64_t> indicesshape{ 1, 2 };
+		//std::vector<int64_t> outputshape{ 3, 1, 2 };
+
+		std::vector<float> data{
+			1.0, 1.2, 1.9,
+			2.3, 3.4, 3.9,
+			4.5, 5.7, 5.9
+		};
+		std::vector<int64_t>indices{
+			0, 2,
+		};
+		int32_t axis = 1;
+		std::vector<float> output{
+			1.0, 1.9,
+			2.3, 3.9,
+			4.5, 5.9,
+		};
+
+		LaunchGather(data, datashape, indices, indicesshape, axis, output);
+	}
+	// Scalar index (indices shape {}): the gathered axis disappears. This is CLIP's QKV split and CLS select.
+	TEST_CASE(GatherScalarIndex) {
+		std::vector<int64_t> datashape{ 3, 2 };
+		std::vector<int64_t> indicesshape{};          // scalar
+		std::vector<float> data{
+			1.0, 1.2,
+			2.3, 3.4,
+			4.5, 5.7,
+		};
+		std::vector<int64_t> indices{ 1 };
+		std::vector<float> output{ 2.3, 3.4 };        // shape [2]
+		LaunchGather(data, datashape, indices, indicesshape, 0, output);
+	}
+
+	// Negative index counts from the end: -1 on axis 1 of a [3,3] is column 2. Same result as GatherAxis.
+	TEST_CASE(GatherNegativeIndex) {
+		std::vector<int64_t> datashape{ 3, 3 };
+		std::vector<int64_t> indicesshape{ 1, 2 };
+		std::vector<float> data{
+			1.0, 1.2, 1.9,
+			2.3, 3.4, 3.9,
+			4.5, 5.7, 5.9
+		};
+		std::vector<int64_t> indices{ 0, -1 };
+		std::vector<float> output{
+			1.0, 1.9,
+			2.3, 3.9,
+			4.5, 5.9,
+		};
+		LaunchGather(data, datashape, indices, indicesshape, 1, output);
+	}
 }

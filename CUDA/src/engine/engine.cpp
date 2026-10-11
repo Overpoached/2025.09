@@ -233,6 +233,7 @@ namespace ohy {
 		dispatch["Unsqueeze"] = OpUnsqueeze;
 		dispatch["Squeeze"] = OpSqueeze;
 		dispatch["Sigmoid"] = OpSigmoid;
+		dispatch["Gather"] = OpGather;
 		// ... all 14. Anything else -> dispatch.at() throws -> "fail loudly"
 
 		std::cout << "Initialized dispatch for supported operations." << std::endl;

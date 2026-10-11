@@ -26,6 +26,7 @@
     <CudaCompile Include="src\kernels\nn\transpose.cu" />
     <CudaCompile Include="src\kernels\nn\layernorm.cu" />
     <CudaCompile Include="src\kernels\nn\matmul.cu" />
+    <CudaCompile Include="src\kernels\nn\gather.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
@@ -64,6 +65,7 @@
     <ClCompile Include="src\engine\ops\matmul.cpp" />
     <ClCompile Include="src\engine\ops\unsqueeze.cpp" />
     <ClCompile Include="src\engine\ops\squeeze.cpp" />
+    <ClCompile Include="src\engine\ops\gather.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\bench\bandwidth_suite.h">

@@ -64,4 +64,12 @@ namespace kernels {
 		std::vector<int64_t>& outShape);
 	void GEMM(const float* a, const float* b, const float* bias, float* c, 
 		const GEMMShape& shape, cudaStream_t stream);
+
+	// Gather: data viewed as [outer, axisDim, inner]; output is [outer, numIndices, inner]
+	struct GatherShape {
+		int64_t outer, axisDim, inner;
+		int64_t numIndices;
+		int64_t n;   // output elements = outer * numIndices * inner
+	};
+	void Gather(const float* data, const int64_t* indices, float* y, const GatherShape& shape, cudaStream_t stream);
 }

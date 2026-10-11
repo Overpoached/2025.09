@@ -332,6 +332,7 @@
     </CudaCompile>
     <CudaCompile Include="src\kernels\nn\conv.cu" />
     <CudaCompile Include="src\kernels\nn\elementop.cu" />
+    <CudaCompile Include="src\kernels\nn\gather.cu" />
     <CudaCompile Include="src\kernels\nn\layernorm.cu" />
     <CudaCompile Include="src\kernels\nn\matmul.cu" />
     <CudaCompile Include="src\kernels\nn\transpose.cu" />
@@ -340,6 +341,7 @@
     <ClCompile Include="src\engine\engine.cpp" />
     <ClCompile Include="src\engine\ops\concat.cpp" />
     <ClCompile Include="src\engine\ops\conv.cpp" />
+    <ClCompile Include="src\engine\ops\gather.cpp" />
     <ClCompile Include="src\engine\ops\gemm.cpp" />
     <ClCompile Include="src\engine\ops\layernorm.cpp" />
     <ClCompile Include="src\engine\ops\matmul.cpp" />
