@@ -58,6 +58,7 @@ namespace kernels {
 		int64_t batch = 1;
 		int64_t m, k, n;
 		int64_t batchStrideA = 0, batchStrideB = 0, batchStrideC = 0, batchStrideBias = 0;   // elements between consecutive matrices; 0 = shared
+		int64_t biasRowStride = 0, biasColStride = 0;   // C/bias broadcast into [M, N]: [N] -> (0,1), [M,1] -> (1,0), [M,N] -> (N,1), scalar -> (0,0)
 		float alpha = 1.0f, beta = 1.0f;
 		int32_t transA = 0, transB = 0, hasC = 0;
 	};

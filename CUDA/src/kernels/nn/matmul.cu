@@ -15,44 +15,64 @@ namespace kernels {
             return ret + "]";
         }
     }
-    // a: [m, k]
-    // b: [k, n]
-    // a * b = c
-    // c: [m, n]
-    __global__ void MatMulKernal(const float* __restrict__ a, 
+	// C[m][n] = alpha * sum_k op(A)[m][k] * op(B)[k][n]  +  beta * bias[m * biasRowStride + n * biasColStride]
+	//   op(A) = A    stored [M, K]   (TransA = false)
+	//         = A^T  stored [K, M]   (TransA = true)
+	//   op(B) = B    stored [K, N]   (TransB = false)
+	//         = B^T  stored [N, K]   (TransB = true)
+	// Shared tiles are always op(A)[row][k] and op(B)[k][col], so the inner product loop is the same
+	// for all four variants; only the global->shared loads differ.
+	template <bool TransA, bool TransB>
+    __global__ void MatMulKernel(const float* __restrict__ a, 
         const float* __restrict__ b,
         const float* __restrict__ bias,
         float* c,
         GEMMShape shape)
     {
-        __shared__ float ds_M[TILE_WIDTH][TILE_WIDTH];
-        __shared__ float ds_N[TILE_WIDTH][TILE_WIDTH];
-        int bx = blockIdx.x; int by = blockIdx.y;
-        int tx = threadIdx.x; int ty = threadIdx.y;
-        int Row = by * blockDim.y + ty;
-        int Col = bx * blockDim.x + tx;
-        int Batch = blockIdx.z;
-        float Pvalue = 0;
+        __shared__ float ds_M[TILE_WIDTH][TILE_WIDTH + 1];		// op(A) tile: [row][k]
+        __shared__ float ds_N[TILE_WIDTH][TILE_WIDTH + 1];		// op(B) tile: [k][col]
+        const int tx = threadIdx.x; const int ty = threadIdx.y;
+		const int64_t rowBase = int64_t(blockIdx.y) * TILE_WIDTH;
+		const int64_t colBase = int64_t(blockIdx.x) * TILE_WIDTH;
+		const int64_t row = rowBase + ty;
+		const int64_t col = colBase + tx;
+		const int64_t Batch = blockIdx.z;
 
         if (Batch >= shape.batch) return;
 
+		const float* A = a + Batch * shape.batchStrideA;
+		const float* B = b + Batch * shape.batchStrideB;
+		const int64_t M = shape.m, N = shape.n, K = shape.k;
+
+		float Pvalue = 0.0f;
         // Loop over the M and N tiles required to compute the P element
-        for (int p = 0; p < (shape.k - 1) / TILE_WIDTH + 1; ++p) {
+        for (int64_t k0 = 0; k0 < K; k0 += TILE_WIDTH) {
             // Collaborative loading of M and N tiles into shared memory
-            if (Row < shape.m && p * TILE_WIDTH + tx < shape.k) {
-                ds_M[ty][tx] = a[Batch * shape.batchStrideA + Row * shape.k + p * TILE_WIDTH + tx];
-            }
-            else {
-                ds_M[ty][tx] = 0.0;
-            }
-            if (!shape.transB && p * TILE_WIDTH + ty < shape.k && Col < shape.n) {
-                ds_N[ty][tx] = b[Batch * shape.batchStrideB + (p * TILE_WIDTH + ty) * shape.n + Col];
-            } else if (shape.transB && p * TILE_WIDTH + ty < shape.k && Col < shape.n) {
-				ds_N[ty][tx] = b[Batch * shape.batchStrideB + Col * shape.k + (p * TILE_WIDTH + ty)];
+			// ---- op(A) tile ----
+			if (!TransA) {
+				// A is [M, K]: tx walks k, which is contiguous -> coalesced
+				const int64_t k = k0 + tx;
+				ds_M[ty][tx] = (row < M && k < K) ? A[row * K + k] : 0.0f;
 			}
-            else {
-                ds_N[ty][tx] = 0.0;
-            }
+			else {
+				// A is [K, M]: tx walks m (contiguous), then store transposed into [row][k]
+				const int64_t k = k0 + ty;
+				const int64_t m = rowBase + tx;
+				ds_M[tx][ty] = (m < M && k < K) ? A[k * M + m] : 0.0f;
+			}
+
+			// ---- op(B) tile ----
+			if (!TransB) {
+				// B is [K, N]: tx walks n, which is contiguous -> coalesced
+				const int64_t k = k0 + ty;
+				ds_N[ty][tx] = (k < K && col < N) ? B[k * N + col] : 0.0f;
+			}
+			else {
+				// B is [N, K]: tx walks k (contiguous), then store transposed into [k][col]
+				const int64_t n = colBase + ty;
+				const int64_t k = k0 + tx;
+				ds_N[tx][ty] = (n < N && k < K) ? B[n * K + k] : 0.0f;
+			}
             __syncthreads();
 
             for (int i = 0; i < TILE_WIDTH; ++i) {
@@ -61,29 +81,40 @@ namespace kernels {
             __syncthreads();
         }
 
-
-        if (Row < shape.m && Col < shape.n) {
-			//if (shape.hasC) {
-			//	Pvalue += bias[Batch * shape.batchStrideBias + Row * shape.n + Col];
-			//}
-
-            c[Batch * shape.batchStrideC + Row * shape.n + Col] = Pvalue;
-        }
+		// ---- epilogue: alpha, bias (beta * C), store ----
+		if (row < M && col < N) {
+			float v = shape.alpha * Pvalue;
+			if (bias) {
+				v += shape.beta * bias[Batch * shape.batchStrideBias + row * shape.biasRowStride + col * shape.biasColStride];
+			}
+			c[Batch * shape.batchStrideC + row * N + col] = v;
+		}
     }
     void GEMM(const float* a, const float* b, const float* bias, float* c,
         const GEMMShape& shape, cudaStream_t stream)
     {
-        if (shape.m == 0 || shape.n == 0 || shape.k == 0) {
-            return;
+        if (shape.m == 0 || shape.n == 0 || shape.batch == 0) {
+            return; // K == 0 is allowed: the result is just the epilogue (alpha*0 + beta*bias)
         }
-        constexpr int kThreads = TILE_WIDTH;   // multiple of 32 (BlockSum requires it);
-        dim3 grid((shape.n + kThreads - 1) / kThreads,
-            (shape.m + kThreads - 1) / kThreads,
-            shape.batch);
-        dim3 block(kThreads, kThreads, 1);
-        MatMulKernal << <grid, block, 0, stream >> > (a, b, bias, c, shape);
-        
-        CUDA_CHECK(cudaGetLastError());
+		const dim3 block(TILE_WIDTH, TILE_WIDTH, 1);   // 16x16 = 256 threads
+		const dim3 grid(static_cast<unsigned int>((shape.n + TILE_WIDTH - 1) / TILE_WIDTH),
+			static_cast<unsigned int>((shape.m + TILE_WIDTH - 1) / TILE_WIDTH),
+			static_cast<unsigned int>(shape.batch));
+       
+		// One compiled variant per layout: no runtime branches in the main loop
+		if (!shape.transA && !shape.transB) {
+			MatMulKernel<false, false> << <grid, block, 0, stream >> > (a, b, bias, c, shape);
+		}
+		else if (!shape.transA && shape.transB) {
+			MatMulKernel<false, true> << <grid, block, 0, stream >> > (a, b, bias, c, shape);
+		}
+		else if (shape.transA && !shape.transB) {
+			MatMulKernel<true, false> << <grid, block, 0, stream >> > (a, b, bias, c, shape);
+		}
+		else {
+			MatMulKernel<true, true> << <grid, block, 0, stream >> > (a, b, bias, c, shape);
+		}
+		CUDA_CHECK(cudaGetLastError());
     }
 
 	// ONNX MatMul = numpy.matmul:

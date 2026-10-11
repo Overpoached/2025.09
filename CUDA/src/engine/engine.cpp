@@ -236,6 +236,7 @@ namespace ohy {
 		dispatch["Gather"] = OpGather;
 		dispatch["Mul"] = OpMul;
 		dispatch["Softmax"] = OpSoftmax;
+		dispatch["Gemm"] = OpGEMM;
 		// ... all 14. Anything else -> dispatch.at() throws -> "fail loudly"
 
 		std::cout << "Initialized dispatch for supported operations." << std::endl;
