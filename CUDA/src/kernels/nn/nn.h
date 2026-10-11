@@ -7,7 +7,7 @@
 namespace kernels {
 
 	// elementwise operations: Add, Sub, Mul, Div, Pow, Min, Max, And, Or, Xor
-	void Sigmoid(const float* x, float* y, int64_t n, cudaStream_t stream);	
+	void Sigmoid(const float* x, float* y, int64_t n, cudaStream_t stream);
 
 	// Convolution operation
 	struct ConvShape {
@@ -73,4 +73,12 @@ namespace kernels {
 		int64_t n;   // output elements = outer * numIndices * inner
 	};
 	void Gather(const float* data, const int64_t* indices, float* y, const GatherShape& shape, cudaStream_t stream);
+
+	// Softmax along one axis. Input viewed as [outer, cols, inner]; each (outer, inner) pair is one row.
+	struct SoftmaxShape {
+		int64_t rows;    // outer * inner
+		int64_t cols;    // size of the softmax axis
+		int64_t inner;   // stride between consecutive elements of a row (1 when axis is last)
+	};
+	void Softmax(const float* x, float* y, const SoftmaxShape& shape, cudaStream_t stream);
 }

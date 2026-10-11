@@ -3,6 +3,7 @@
 #include "../kernel_utility.h"
 
 #include <vector>
+#include <math_constants.h>
 
 namespace kernels {
     namespace {
@@ -196,4 +197,73 @@ namespace kernels {
         Mul(a, b, y, s, stream);
     }
 
+
+    namespace {
+        constexpr int kWarpSize = 32;
+
+        __device__ float WarpMax(float v) {
+            for (int offset = kWarpSize / 2; offset > 0; offset >>= 1) {
+                v = fmaxf(v, __shfl_xor_sync(0xffffffff, v, offset));
+            }
+            return v;
+        }
+
+        __device__ float WarpSum(float v) {
+            for (int offset = kWarpSize / 2; offset > 0; offset >>= 1) {
+                v += __shfl_xor_sync(0xffffffff, v, offset);
+            }
+            return v;
+        }
+    }
+
+    // One warp per row. Lanes stride across the row; reductions use register shuffles only.
+    __global__ void SoftmaxKernel(const float* __restrict__ x,
+        float* __restrict__ y,
+        SoftmaxShape shape)
+    {
+        const int lane = threadIdx.x % kWarpSize;
+        const int64_t row = (blockIdx.x * int64_t(blockDim.x) + threadIdx.x) / kWarpSize;
+        if (row >= shape.rows) {
+            return;   // all 32 lanes share the same row, so the whole warp exits together: shuffles stay safe
+        }
+
+        // Row (o, in) of [outer, cols, inner]: element j lives at base + j * inner
+        const int64_t o = row / shape.inner;
+        const int64_t in = row % shape.inner;
+        const int64_t base = o * shape.cols * shape.inner + in;
+        const float* xr = x + base;
+        float* yr = y + base;
+
+        // Pass 1: row max (subtracting it keeps exp() from overflowing)
+        float m = -CUDART_INF_F;
+        for (int64_t j = lane; j < shape.cols; j += kWarpSize) {
+            m = fmaxf(m, xr[j * shape.inner]);
+        }
+        m = WarpMax(m);
+
+        // Pass 2: sum of exp(x - max)
+        float sum = 0.0f;
+        for (int64_t j = lane; j < shape.cols; j += kWarpSize) {
+            sum += expf(xr[j * shape.inner] - m);
+        }
+        sum = WarpSum(sum);
+        const float inv = 1.0f / sum;
+
+        // Pass 3: normalise
+        for (int64_t j = lane; j < shape.cols; j += kWarpSize) {
+            yr[j * shape.inner] = expf(xr[j * shape.inner] - m) * inv;
+        }
+    }
+
+    void Softmax(const float* x, float* y, const SoftmaxShape& shape, cudaStream_t stream)
+    {
+        if (shape.rows == 0 || shape.cols == 0) {
+            return;
+        }
+        constexpr int kWarpsPerBlock = 8;
+        constexpr int kThreads = kWarpsPerBlock * kWarpSize;   // 256
+        const int64_t blocks = (shape.rows + kWarpsPerBlock - 1) / kWarpsPerBlock;
+        SoftmaxKernel << <static_cast<unsigned int>(blocks), kThreads, 0, stream >> > (x, y, shape);
+        CUDA_CHECK(cudaGetLastError());
+    }
 }

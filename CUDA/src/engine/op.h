@@ -42,6 +42,8 @@ namespace ohy {
 		const std::vector<TensorPtr>& in, OpContext& ctx);
 	std::vector<TensorPtr> OpGather(const onnx::NodeProto* node,
 		const std::vector<TensorPtr>& in, OpContext& ctx);
+	std::vector<TensorPtr> OpSoftmax(const onnx::NodeProto* node,
+		const std::vector<TensorPtr>& in, OpContext& ctx);
 	// Helpers
 
 }
