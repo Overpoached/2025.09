@@ -7,8 +7,7 @@
 namespace kernels {
 
 	// elementwise operations: Add, Sub, Mul, Div, Pow, Min, Max, And, Or, Xor
-	void Sigmoid(const float* x, float* y, int64_t n, cudaStream_t stream);
-	void Add(const float* x, const float* y, float* z, int64_t n, cudaStream_t stream);
+	void Sigmoid(const float* x, float* y, int64_t n, cudaStream_t stream);	
 
 	// Convolution operation
 	struct ConvShape {
@@ -45,8 +44,8 @@ namespace kernels {
 	};
 	// a and b must have compatible shape
 	BroadcastShape MakeBroadcast(const std::vector<int64_t>& a, const std::vector<int64_t>& b, std::vector<int64_t>& outShape);
-	//BroadcastShape MakeGEMMBroadcast(const std::vector<int64_t>& a, const std::vector<int64_t>& b, std::vector<int64_t>& outShape);
-	void AddBroadcast(const float* a, const float* b, float* y, const BroadcastShape& shape, cudaStream_t stream);
+	void Add(const float* a, const float* b, float* y, const BroadcastShape& shape, cudaStream_t stream);
+	void Add(const float* a, const float* b, float* y, int64_t n, cudaStream_t stream);   // same shapes
 
 	// LayerNormalization over the last `cols` elements of each row. bias may be nullptr.
 	void LayerNorm(const float* x, const float* scale, const float* bias, float* y,

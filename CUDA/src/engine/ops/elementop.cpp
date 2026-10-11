@@ -32,7 +32,7 @@ namespace ohy {
         std::vector<int64_t> outShape;
         kernels::BroadcastShape shape = kernels::MakeBroadcast(in[0]->shape, in[1]->shape, outShape);
         auto out = CreateTensor(Location::Device, DataType::FLOAT32, outShape, nullptr, shape.n * sizeof(float));
-        kernels::AddBroadcast(in[0]->f32(), in[1]->f32(), out->f32(), shape, ctx.stream);
+        kernels::Add(in[0]->f32(), in[1]->f32(), out->f32(), shape, ctx.stream);
         return { out };
     }
 }
