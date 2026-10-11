@@ -46,6 +46,8 @@ namespace kernels {
 	BroadcastShape MakeBroadcast(const std::vector<int64_t>& a, const std::vector<int64_t>& b, std::vector<int64_t>& outShape);
 	void Add(const float* a, const float* b, float* y, const BroadcastShape& shape, cudaStream_t stream);
 	void Add(const float* a, const float* b, float* y, int64_t n, cudaStream_t stream);   // same shapes
+	void Mul(const float* a, const float* b, float* y, const BroadcastShape& shape, cudaStream_t stream);
+	void Mul(const float* a, const float* b, float* y, int64_t n, cudaStream_t stream);   // same shapes
 
 	// LayerNormalization over the last `cols` elements of each row. bias may be nullptr.
 	void LayerNorm(const float* x, const float* scale, const float* bias, float* y,
