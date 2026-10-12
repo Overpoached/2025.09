@@ -44,13 +44,13 @@ namespace ohy {
 				a += outRank;
 			}
 			if (a < 0 || a >= outRank) {
-				throw std::runtime_error("Squeeze: axis out of range " + utility::ToString(axes)
+				throw std::runtime_error("Squeeze: axis out of range " + ToString(axes)
 					+ " for output rank " + std::to_string(outRank) + ", node " + node->name());
 			}
 		}
 		std::sort(axes.begin(), axes.end(), std::greater<int64_t>());
 		if (std::adjacent_find(axes.begin(), axes.end()) != axes.end()) {
-			throw std::runtime_error("Squeeze: duplicate axes " + utility::ToString(axes) + ", node " + node->name());
+			throw std::runtime_error("Squeeze: duplicate axes " + ToString(axes) + ", node " + node->name());
 		}
 
 		// Remove in descending order: each axis is then already its final position in the output
@@ -58,7 +58,7 @@ namespace ohy {
 		for (int64_t a : axes) {
 			auto it = outShape.begin() + a;
 			if (*it != 1) {
-				throw std::runtime_error("Squeeze: axis " + utility::ToString(axes) + " != 1, node " + node->name());
+				throw std::runtime_error("Squeeze: axis " + ToString(axes) + " != 1, node " + node->name());
 			}
 			outShape.erase(outShape.begin() + a);
 		}

@@ -11,6 +11,10 @@ Global
 		Debug|x86 = Debug|x86
 		Debug-Add|x64 = Debug-Add|x64
 		Debug-Add|x86 = Debug-Add|x86
+		Debug-Compare|x64 = Debug-Compare|x64
+		Debug-Compare|x86 = Debug-Compare|x86
+		Debug-Golden|x64 = Debug-Golden|x64
+		Debug-Golden|x86 = Debug-Golden|x86
 		Debug-Test|x64 = Debug-Test|x64
 		Debug-Test|x86 = Debug-Test|x86
 		Release|x64 = Release|x64
@@ -25,6 +29,14 @@ Global
 		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Add|x64.Build.0 = Debug-Add|x64
 		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Add|x86.ActiveCfg = Debug-Add|Win32
 		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Add|x86.Build.0 = Debug-Add|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Compare|x64.ActiveCfg = Debug-Compare|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Compare|x64.Build.0 = Debug-Compare|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Compare|x86.ActiveCfg = Debug-Compare|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Compare|x86.Build.0 = Debug-Compare|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Golden|x64.ActiveCfg = Debug-Golden|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Golden|x64.Build.0 = Debug-Golden|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Golden|x86.ActiveCfg = Debug-Golden|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Golden|x86.Build.0 = Debug-Golden|Win32
 		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Test|x64.ActiveCfg = Debug-Test|x64
 		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Test|x64.Build.0 = Debug-Test|x64
 		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Test|x86.ActiveCfg = Debug-Test|Win32

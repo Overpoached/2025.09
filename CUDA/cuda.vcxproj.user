@@ -8,9 +8,23 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerCommandArgumentsHistory>add|--add --image |--add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin"|add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin"|add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin" --golden "C:\_stuffs\repo\2025.09\CUDA\python\dump_golden\out"|</LocalDebuggerCommandArgumentsHistory>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Golden|x64'">
+    <LocalDebuggerCommandArguments>golden --golden_dir "C:\_stuffs\repo\2025.09\CUDA\python\dump_golden\out"</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArgumentsHistory>--add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin"|add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin"|add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin" --golden "C:\_stuffs\repo\2025.09\CUDA\python\dump_golden\out"|golden --model "C:\_stuffs\repo\2025.09\CUDA\python\dump_golden\out"|golden --golden_dir "C:\_stuffs\repo\2025.09\CUDA\python\dump_golden\out"|</LocalDebuggerCommandArgumentsHistory>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Test|x64'">
     <LocalDebuggerCommandArguments>test</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerCommandArgumentsHistory>test|</LocalDebuggerCommandArgumentsHistory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Compare|x64'">
+    <LocalDebuggerCommandArguments>compare --images "./images/cat.jpg" "./images/cat2.jpg" "./images/dog.jpg"</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArgumentsHistory>compare --images "./images/cat.jpg" "./images/cat2.jpg" "./images/dog.jpg"|</LocalDebuggerCommandArgumentsHistory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Golden|Win32'">
+    <LocalDebuggerCommandArguments>golden --golden_dir "C:\_stuffs\repo\2025.09\CUDA\python\dump_golden\out"</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

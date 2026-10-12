@@ -35,8 +35,8 @@ namespace ohy {
         const int64_t Kb = transB ? bs[1] : bs[0];
         const int64_t N = transB ? bs[0] : bs[1];
         if (K != Kb) {
-            throw std::runtime_error("GEMM: inner dims differ " + utility::ToString(as) + (transA ? "^T" : "")
-                + " x " + utility::ToString(bs) + (transB ? "^T" : "") + ", node " + node->name());
+            throw std::runtime_error("GEMM: inner dims differ " + ToString(as) + (transA ? "^T" : "")
+                + " x " + ToString(bs) + (transB ? "^T" : "") + ", node " + node->name());
         }
 
         kernels::GEMMShape s;
@@ -62,7 +62,7 @@ namespace ohy {
             const int64_t cm = cs.size() == 2 ? cs[0] : 1;
             const int64_t cn = cs.empty() ? 1 : cs.back();
             if ((cm != 1 && cm != M) || (cn != 1 && cn != N)) {
-                throw std::runtime_error("GEMM: C " + utility::ToString(cs) + " does not broadcast to ["
+                throw std::runtime_error("GEMM: C " + ToString(cs) + " does not broadcast to ["
                     + std::to_string(M) + ", " + std::to_string(N) + "], node " + node->name());
             }
             s.biasRowStride = (cm == 1) ? 0 : cn;   // row stride in C's own layout

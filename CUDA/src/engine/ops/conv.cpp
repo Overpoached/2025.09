@@ -9,7 +9,7 @@ namespace ohy {
     std::vector<TensorPtr> OpConv(const onnx::NodeProto* node,
         const std::vector<TensorPtr>& in, OpContext& ctx) {
 
-        //std::cout << utility::ToString(*node) << std::endl;
+        //std::cout << ToString(*node) << std::endl;
 
         if (in.size() != 2) {
             throw std::runtime_error("Conv: expected 2 inputs (data and weights), node " + node->name());

@@ -15,6 +15,10 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <cmath>
+#include <filesystem>
+#include <limits>
 
 #include "bench/bandwidth_suite.h"
 #include "bench/cuda_check.h"
@@ -40,8 +44,8 @@ struct Options {
 
 	// Engine use options
 	std::string model_path = "./model/model.onnx";  // Default model path
-    std::string image_path = "./images/test.jpg";  // Default image path
-    std::string golden_path = "";  // golden path
+    std::string golden_dir_path = "";
+    std::vector<std::string> image_paths; // compare: --images a.jpg b.jpg 
 };
 
 void PrintUsage(std::ostream& out) {
@@ -51,6 +55,7 @@ void PrintUsage(std::ostream& out) {
            "  bench                 run the bandwidth benchmark suite (default)\n"
            "  info                  print device properties and current clock state\n"
            "  demo                  run the original add-one/reduction sanity demo\n"
+           "  compare --images A B ...  embed images and rank how similar each pair is\n"
            "\n"
            "options:\n"
            "  --device N            CUDA device index (default 0)\n"
@@ -149,12 +154,18 @@ Options ParseArgs(int argc, char** argv, bool* should_exit) {
             options.markdown_path = TakeValue(argc, argv, i, "--markdown");
         } else if (arg == "--note") {
             options.what_changed = TakeValue(argc, argv, i, "--note");
+        } else if (arg == "--model") {
+            options.model_path = TakeValue(argc, argv, i, "--model");
+        } else if (arg == "--golden_dir") {
+            options.golden_dir_path = TakeValue(argc, argv, i, "--golden_dir");
         } else if (arg == "--images") {
-        //    options.image_path = ParseSizeList(TakeValue(argc, argv, i, "--sizes"));
-        } else if (arg == "--image") {
-            options.image_path = TakeValue(argc, argv, i, "--image");
-        } else if (arg == "--golden") {
-            options.golden_path = TakeValue(argc, argv, i, "--golden");
+            // Takes every following argument up to the next option.
+            while (i + 1 < argc && argv[i + 1][0] != '-') {
+                options.image_paths.push_back(argv[++i]);
+            }
+            if (options.image_paths.empty()) {
+                throw std::runtime_error("--images requires at least one path");
+            }
         } else if (!arg.empty() && arg[0] == '-') {
             throw std::runtime_error("unrecognised option: " + arg);
         } else {
@@ -276,13 +287,19 @@ int RunBench(const Options& options) {
 }
 
 int RunEngine(const Options& options) {
-    ohy::Engine engine;
-    engine.Initialize(options.model_path);  // Default path
-    engine.InitializeOutputCheck(options.golden_path);
-    std::string result = engine.ProcessImage(options.image_path);
-    std::cout << "Identified car model: " << result << "\n";
 
-	engine.Shutdown();
+    ohy::InitArg initArgs;
+    initArgs.modelPath = options.model_path;
+    //initArgs.type = ohy::InstanceType::COMPARE;
+
+    ohy::RunArg runArgs;
+    runArgs.imagePaths = options.image_paths;
+
+    ohy::Engine engine;
+    engine.Initialize(initArgs);
+    engine.Run(runArgs);
+    engine.Shutdown();
+
     return 0;
 }
 
@@ -290,6 +307,43 @@ int RunTest(const Options& options) {
     std::cout << "Running Test...\n";
 	test::InitTests();
     return test::RunAllTests();
+}
+
+int RunGolden(const Options& options) {
+
+    ohy::InitArg initArgs;
+    initArgs.modelPath = options.model_path;
+    initArgs.goldenDirPath = options.golden_dir_path;
+    initArgs.type = ohy::InstanceType::GOLDEN;
+
+    ohy::RunArg runArgs;
+
+    ohy::Engine engine;
+    engine.Initialize(initArgs);
+    engine.Run(runArgs);
+
+    engine.Shutdown();
+    return 0;
+}
+
+int RunCompare(const Options& options) {
+    if (options.image_paths.size() < 2) {
+        throw std::runtime_error("compare needs at least 2 images: --images a.jpg b.jpg ...");
+    }
+
+    ohy::InitArg initArgs;
+    initArgs.modelPath = options.model_path;
+    initArgs.type = ohy::InstanceType::COMPARE;
+
+    ohy::RunArg runArgs;
+    runArgs.imagePaths = options.image_paths;
+
+    ohy::Engine engine;
+    engine.Initialize(initArgs);
+    engine.Run(runArgs);
+    engine.Shutdown();
+
+    return 0;
 }
 
 }  // namespace
@@ -313,11 +367,17 @@ int main(int argc, char** argv) {
         if (options.command == "bench") {
             return RunBench(options);
         }
-        if (options.command == "add") {
-			return RunEngine(options);
-        }
         if (options.command == "test") {
             return RunTest(options);
+        }
+        if (options.command == "add") {
+            return RunEngine(options);
+        }
+        if (options.command == "golden") {
+            return RunGolden(options);
+        }
+        if (options.command == "compare") {
+            return RunCompare(options);
         }
 
         std::cerr << "unknown command: " << options.command << "\n\n";

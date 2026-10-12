@@ -158,7 +158,7 @@ namespace test {
 		CUDA_CHECK(cudaMemcpy(y.data(), d_y.ptr, ybytes, cudaMemcpyDeviceToHost));
 
 		if (print_result) {
-			std::cout << "y:\n" << ohy::utility::ToString(y) << std::endl;
+			std::cout << "y:\n" << ohy::ToString(y) << std::endl;
 		}
 
 		for (int64_t i = 0; i < r.size(); ++i) {
@@ -684,7 +684,7 @@ namespace test {
 		CUDA_CHECK(cudaMemcpy(got.data(), dC.ptr, got.size() * sizeof(float), cudaMemcpyDeviceToHost));
 
 		if (print_result) {
-			std::cout << "out shape " << ohy::utility::ToString(outShape) << "\n" << ohy::utility::ToString(got) << std::endl;
+			std::cout << "out shape " << ohy::ToString(outShape) << "\n" << ohy::ToString(got) << std::endl;
 		}
 
 		for (size_t i = 0; i < got.size(); ++i) {

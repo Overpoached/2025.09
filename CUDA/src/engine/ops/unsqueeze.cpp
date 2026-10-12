@@ -42,13 +42,13 @@ namespace ohy {
 				a += outRank;
 			}
 			if (a < 0 || a >= outRank) {
-				throw std::runtime_error("Unsqueeze: axis out of range " + utility::ToString(axes)
+				throw std::runtime_error("Unsqueeze: axis out of range " + ToString(axes)
 					+ " for output rank " + std::to_string(outRank) + ", node " + node->name());
 			}
 		}
 		std::sort(axes.begin(), axes.end());
 		if (std::adjacent_find(axes.begin(), axes.end()) != axes.end()) {
-			throw std::runtime_error("Unsqueeze: duplicate axes " + utility::ToString(axes) + ", node " + node->name());
+			throw std::runtime_error("Unsqueeze: duplicate axes " + ToString(axes) + ", node " + node->name());
 		}
 
 		// Insert in ascending order: each axis is then already its final position in the output

@@ -56,8 +56,8 @@ namespace ohy {
 			}
 			for (int64_t d = 0; d < rank; ++d) {
 				if (d != axis && t->shape[d] != ref.shape[d]) {
-					throw std::runtime_error("Concat: non-axis dimension mismatch " + utility::ToString(t->shape)
-						+ " vs " + utility::ToString(ref.shape) + ", node " + node->name());
+					throw std::runtime_error("Concat: non-axis dimension mismatch " + ToString(t->shape)
+						+ " vs " + ToString(ref.shape) + ", node " + node->name());
 				}
 			}
 			outShape[axis] += t->shape[axis];
