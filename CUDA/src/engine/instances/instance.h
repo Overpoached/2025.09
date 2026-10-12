@@ -20,16 +20,28 @@ namespace ohy {
 		CRUD
 	};
 
+	enum class CrudOp {
+		Add,      // store new images, skip files already stored
+		Update,   // replace everything stored under the labels of the given images
+		Delete,   // delete every embedding under the given labels, or everything
+		Read      // count embeddings per label
+	};
+
 	struct InitArg {
 		std::string modelPath;
 		std::string goldenDirPath;
 		std::string storageDir;
 		InstanceType type;
+		bool loadModel = true;                // false for work that never runs the graph (CRUD read/delete)
 	};
 	struct RunArg {
 		std::vector<std::string> imagePaths;  // CRUD: files or directories (searched recursively)
-		std::vector<std::string> labels;      // CRUD: none (parent dir name), one for all, or one per imagePaths entry
+		std::vector<std::string> labels;      // CRUD add/update: none (parent dir name), one for all, or one per imagePaths entry
+		                                      // CRUD delete/read: the labels to act on
 		std::string runBy;
+		CrudOp crudOp = CrudOp::Add;
+		bool all = false;                     // CRUD delete: every label
+		int topK = 5;                         // INFER: neighbours that vote on each image's label
 
 		std::map<std::string, OpFn> dispatch; // Dispatch map for node processing
 	};

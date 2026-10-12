@@ -102,7 +102,9 @@ namespace ohy {
 	}
 	void Instance::Initialize(const InitArg& initArg)
 	{
-		LoadModel(initArg.modelPath);
+		if (initArg.loadModel) {
+			LoadModel(initArg.modelPath);
+		}
 		InitSelf(initArg);
 	}
 	void Instance::Run(const RunArg& runArg)
@@ -162,6 +164,9 @@ namespace ohy {
 	std::vector<std::vector<float>> Instance::EmbedImages(const std::vector<std::string>& imagePaths,
 		const RunArg& runArg)
 	{
+		if (!model) {
+			throw std::runtime_error("EmbedImages: model not loaded (InitArg::loadModel was false)");
+		}
 		if (input_names.empty() || output_names.empty()) {
 			throw std::runtime_error("EmbedImages: model has no inputs or outputs");
 		}
@@ -226,6 +231,8 @@ namespace ohy {
 			return std::make_unique<CompareInstance>();
 		case InstanceType::CRUD:
 			return std::make_unique<CRUDInstance>();
+		case InstanceType::INFER:
+			return std::make_unique<InferInstance>();
 		default:
 			throw std::runtime_error("MakeInstance: Unsupported instance type");
 		}

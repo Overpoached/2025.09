@@ -15,6 +15,8 @@ Global
 		Debug-Compare|x86 = Debug-Compare|x86
 		Debug-Golden|x64 = Debug-Golden|x64
 		Debug-Golden|x86 = Debug-Golden|x86
+		Debug-Infer|x64 = Debug-Infer|x64
+		Debug-Infer|x86 = Debug-Infer|x86
 		Debug-Test|x64 = Debug-Test|x64
 		Debug-Test|x86 = Debug-Test|x86
 		Release|x64 = Release|x64
@@ -37,6 +39,10 @@ Global
 		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Golden|x64.Build.0 = Debug-Golden|x64
 		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Golden|x86.ActiveCfg = Debug-Golden|Win32
 		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Golden|x86.Build.0 = Debug-Golden|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Infer|x64.ActiveCfg = Debug-Infer|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Infer|x64.Build.0 = Debug-Infer|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Infer|x86.ActiveCfg = Debug-Infer|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Infer|x86.Build.0 = Debug-Infer|Win32
 		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Test|x64.ActiveCfg = Debug-Test|x64
 		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Test|x64.Build.0 = Debug-Test|x64
 		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Test|x86.ActiveCfg = Debug-Test|Win32

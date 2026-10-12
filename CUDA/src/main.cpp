@@ -46,9 +46,12 @@ struct Options {
 	std::string model_path = "./model/model.onnx";  // Default model path
     std::string golden_dir_path = "";
     std::vector<std::string> image_paths; // compare: --images a.jpg b.jpg
-    std::vector<std::string> labels;      // add: none (parent dir name), one for all, or one per --images entry
-    std::string user;                     // add: create_by. Defaults to the OS user name.
-    std::string storage_dir = "./data";   // add: directory holding the embedding tables
+    std::vector<std::string> labels;      // add/update: none (parent dir name), one for all, or one per --images entry
+                                          // delete/read: the labels to act on
+    std::string user;                     // add/update: create_by. Defaults to the OS user name.
+    std::string storage_dir = "./data";   // add/update/delete/read/infer: directory holding the embedding tables
+    int top_k = 5;                        // infer: neighbours that vote on the label
+    bool all = false;                     // delete: every label
 };
 
 void PrintUsage(std::ostream& out) {
@@ -66,6 +69,20 @@ void PrintUsage(std::ostream& out) {
            "                        image is labelled with its parent directory's name;\n"
            "                        with one --label, every image gets that label; with\n"
            "                        one --label per --images entry, each entry gets its own\n"
+           "                        label\n"
+           "  update [--label L] --images A dir/ ...\n"
+           "                        labels are resolved as for add; everything stored under\n"
+           "                        those labels is replaced by these images. Files stored\n"
+           "                        under any other label are left alone (and skipped)\n"
+           "  delete { --label L ... | --all }\n"
+           "                        delete everything under the given label(s), or clear\n"
+           "                        the whole store\n"
+           "  read [--label L ...]  count stored embeddings per label (all labels if none\n"
+           "                        given)\n"
+           "  infer --images A dir/ ...\n"
+           "                        find the closest stored label for each image (files or\n"
+           "                        directories): the k nearest stored embeddings vote,\n"
+           "                        weighted by similarity\n"
            "\n"
            "options:\n"
            "  --device N            CUDA device index (default 0)\n"
@@ -80,6 +97,8 @@ void PrintUsage(std::ostream& out) {
            "  --model PATH          ONNX model (default ./model/model.onnx)\n"
            "  --storage DIR         embedding storage directory (default ./data)\n"
            "  --user NAME           create_by for stored rows (default: OS user name)\n"
+           "  --k N                 infer: neighbours that vote on the label (default 5)\n"
+           "  --all                 delete: every label\n"
            "  -h, --help            this message\n";
 }
 
@@ -171,12 +190,16 @@ Options ParseArgs(int argc, char** argv, bool* should_exit) {
             options.model_path = TakeValue(argc, argv, i, "--model");
         } else if (arg == "--golden_dir") {
             options.golden_dir_path = TakeValue(argc, argv, i, "--golden_dir");
+        } else if (arg == "--all") {
+            options.all = true;
         } else if (arg == "--label") {
             options.labels.push_back(TakeValue(argc, argv, i, "--label"));
         } else if (arg == "--user") {
             options.user = TakeValue(argc, argv, i, "--user");
         } else if (arg == "--storage") {
             options.storage_dir = TakeValue(argc, argv, i, "--storage");
+        } else if (arg == "--k") {
+            options.top_k = ParsePositive(TakeValue(argc, argv, i, "--k"), "--k");
         } else if (arg == "--images") {
             // Takes every following argument up to the next option.
             while (i + 1 < argc && argv[i + 1][0] != '-') {
@@ -334,20 +357,57 @@ std::string DefaultUser() {
     return "unknown";
 }
 
-int RunAdd(const Options& options) {
-    if (options.image_paths.empty()) {
-        throw std::runtime_error("add needs images: --images a.jpg dir/ ...");
+int RunCrud(const Options& options, ohy::CrudOp op) {
+    const bool takesImages = op == ohy::CrudOp::Add || op == ohy::CrudOp::Update;
+    if (takesImages && options.image_paths.empty()) {
+        throw std::runtime_error(options.command + " needs images: --images a.jpg dir/ ...");
+    }
+    if (!takesImages && !options.image_paths.empty()) {
+        throw std::runtime_error(options.command + " does not take --images");
+    }
+    if (options.all && op != ohy::CrudOp::Delete) {
+        throw std::runtime_error("--all is only for delete");
+    }
+    // Opening a missing directory creates an empty store; for read/delete a typo should fail instead.
+    if (!takesImages && !std::filesystem::is_directory(options.storage_dir)) {
+        throw std::runtime_error("storage directory not found: " +
+            std::filesystem::absolute(options.storage_dir).string());
     }
 
     ohy::InitArg initArgs;
     initArgs.modelPath = options.model_path;
     initArgs.storageDir = options.storage_dir;
     initArgs.type = ohy::InstanceType::CRUD;
+    initArgs.loadModel = takesImages;   // read/delete never run the network
+
+    ohy::RunArg runArgs;
+    runArgs.crudOp = op;
+    runArgs.imagePaths = options.image_paths;
+    runArgs.labels = options.labels;
+    runArgs.all = options.all;
+    runArgs.runBy = options.user.empty() ? DefaultUser() : options.user;
+
+    ohy::Engine engine;
+    engine.Initialize(initArgs);
+    engine.Run(runArgs);
+    engine.Shutdown();
+
+    return 0;
+}
+
+int RunInfer(const Options& options) {
+    if (options.image_paths.empty()) {
+        throw std::runtime_error("infer needs images: --images a.jpg dir/ ...");
+    }
+
+    ohy::InitArg initArgs;
+    initArgs.modelPath = options.model_path;
+    initArgs.storageDir = options.storage_dir;
+    initArgs.type = ohy::InstanceType::INFER;
 
     ohy::RunArg runArgs;
     runArgs.imagePaths = options.image_paths;
-    runArgs.labels = options.labels;
-    runArgs.runBy = options.user.empty() ? DefaultUser() : options.user;
+    runArgs.topK = options.top_k;
 
     ohy::Engine engine;
     engine.Initialize(initArgs);
@@ -425,7 +485,19 @@ int main(int argc, char** argv) {
             return RunTest(options);
         }
         if (options.command == "add") {
-            return RunAdd(options);
+            return RunCrud(options, ohy::CrudOp::Add);
+        }
+        if (options.command == "update") {
+            return RunCrud(options, ohy::CrudOp::Update);
+        }
+        if (options.command == "delete") {
+            return RunCrud(options, ohy::CrudOp::Delete);
+        }
+        if (options.command == "read") {
+            return RunCrud(options, ohy::CrudOp::Read);
+        }
+        if (options.command == "infer") {
+            return RunInfer(options);
         }
         if (options.command == "golden") {
             return RunGolden(options);

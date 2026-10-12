@@ -8,6 +8,11 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerCommandArgumentsHistory>--add --image |--add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin"|add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin"|add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin" --golden "C:\_stuffs\repo\2025.09\CUDA\python\dump_golden\out"|add --images "C:\_stuffs\repo\2025.09\CUDA\images\db" --storage ./data --user ohy|</LocalDebuggerCommandArgumentsHistory>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Infer|x64'">
+    <LocalDebuggerCommandArguments>infer --images "./images/cat.jpg" --storage ./data</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArgumentsHistory>--add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin"|add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin"|add --image "C:\_stuffs\repo\2025.09\CUDA\python\export\out\golden\pixel_values.bin" --golden "C:\_stuffs\repo\2025.09\CUDA\python\dump_golden\out"|add --images "C:\_stuffs\repo\2025.09\CUDA\images\db" --storage ./data --user ohy|infer --images "./images/cat.jpg" --storage ./data|</LocalDebuggerCommandArgumentsHistory>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Golden|x64'">
     <LocalDebuggerCommandArguments>golden --golden_dir "C:\_stuffs\repo\2025.09\CUDA\python\dump_golden\out"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
