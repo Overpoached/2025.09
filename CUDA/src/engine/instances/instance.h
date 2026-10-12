@@ -23,10 +23,14 @@ namespace ohy {
 	struct InitArg {
 		std::string modelPath;
 		std::string goldenDirPath;
+		std::string storageDir;
 		InstanceType type;
 	};
 	struct RunArg {
-		std::vector<std::string> imagePaths;
+		std::vector<std::string> imagePaths;  // CRUD: files or directories (searched recursively)
+		std::vector<std::string> labels;      // CRUD: none (parent dir name), one for all, or one per imagePaths entry
+		std::string runBy;
+
 		std::map<std::string, OpFn> dispatch; // Dispatch map for node processing
 	};
 	/// <summary>
@@ -50,6 +54,10 @@ namespace ohy {
 			Location bufferLoc) const;
 		std::vector<int64_t> InputShape(int index = 0) const;
 		std::map<std::string, TensorPtr> RunGraph(const RunArg& runArg, OpContext& ctx);
+		// Preprocess + run the graph over imagePaths in batch-sized chunks.
+		// Returns one raw (un-normalised) embedding per image, in input order.
+		std::vector<std::vector<float>> EmbedImages(const std::vector<std::string>& imagePaths,
+			const RunArg& runArg);
 
 		std::map<std::string, TensorPtr> env;
 		std::vector<std::string> input_names;

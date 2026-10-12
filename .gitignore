@@ -54,3 +54,7 @@ CUDA/python/dump_golden/out/
 
 # vcpkg manifest-mode packages, rebuilt from CUDA/vcpkg.json
 CUDA/vcpkg_installed/
+
+# training images
+CUDA/images/
+CUDA/data/

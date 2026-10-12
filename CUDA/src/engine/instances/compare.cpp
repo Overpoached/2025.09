@@ -16,46 +16,7 @@ namespace ohy {
 			throw std::runtime_error("EmbedImages: no images");
 		}
 
-		auto& imagePaths = runArg.imagePaths;
-		const std::vector<int64_t> inShape = InputShape();
-		const int64_t batch = inShape[0];
-		const int64_t slot = inShape[1] * inShape[2] * inShape[3];
-
-		PreprocessConfig cfg;
-		cfg.size = static_cast<int>(inShape[3]);
-		OpContext ctx;
-
-		auto input = std::make_shared<Tensor>();
-		input->dtype = DataType::FLOAT32;
-		input->shape = inShape;
-		input->storage = std::make_shared<Buffer>(Location::Device, input->numel() * sizeof(float));
-
-		std::vector<std::vector<float>> embeds;
-		for (size_t start = 0; start < imagePaths.size(); start += static_cast<size_t>(batch)) {
-			const int64_t used = std::min<int64_t>(batch, static_cast<int64_t>(imagePaths.size() - start));
-			for (int64_t n = 0; n < used; ++n) {
-				std::cout << "Embedding " << imagePaths[start + n] << std::endl;
-				PreprocessImage(ReadFileBytes(imagePaths[start + n]), cfg, input->f32() + n * slot, ctx.stream);
-			}
-			// Fixed batch: pad unused slots with copies of slot 0 and ignore their outputs.
-			for (int64_t n = used; n < batch; ++n) {
-				CUDA_CHECK(cudaMemcpyAsync(input->f32() + n * slot, input->f32(), slot * sizeof(float),
-					cudaMemcpyDeviceToDevice, ctx.stream));
-			}
-			env[input_names[0]] = input;
-
-			auto outMap = RunGraph(runArg, ctx);
-			TensorPtr out = outMap.at(output_names[0]);                // [batch, 512]
-			const int64_t dim = out->numel() / batch;
-			std::vector<float> host(out->numel());
-			CUDA_CHECK(cudaMemcpyAsync(host.data(), out->f32(), host.size() * sizeof(float),
-				cudaMemcpyDeviceToHost, ctx.stream));
-			CUDA_CHECK(cudaStreamSynchronize(ctx.stream));       // also makes `input` safe to overwrite next chunk
-
-			for (int64_t n = 0; n < used; ++n) {
-				embeds.emplace_back(host.begin() + n * dim, host.begin() + (n + 1) * dim);
-			}
-		}
+		std::vector<std::vector<float>> embeds = EmbedImages(runArg.imagePaths, runArg);
 
 		//Print result
         // CLIP's learned temperature, logit_scale.exp(). For ViT-B/32 it is 100

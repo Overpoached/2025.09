@@ -73,6 +73,9 @@
     <ClCompile Include="src\engine\instances\compare.cpp" />
     <ClCompile Include="src\engine\instances\golden.cpp" />
     <ClCompile Include="src\engine\instances\crud.cpp" />
+    <ClCompile Include="src\search\embed_store.cpp" />
+    <ClCompile Include="src\search\file_storage_proxy.cpp" />
+    <ClCompile Include="src\test\storage_test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\bench\bandwidth_suite.h">
@@ -122,5 +125,9 @@
     <ClInclude Include="src\common\common.h" />
     <ClInclude Include="src\engine\instances\infer.h" />
     <ClInclude Include="src\engine\instances\crud.h" />
+    <ClInclude Include="src\search\embed_store.h" />
+    <ClInclude Include="src\search\file_storage_proxy.h" />
+    <ClInclude Include="src\search\records.h" />
+    <ClInclude Include="src\search\storage_proxy.h" />
   </ItemGroup>
 </Project>

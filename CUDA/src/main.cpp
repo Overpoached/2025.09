@@ -45,7 +45,10 @@ struct Options {
 	// Engine use options
 	std::string model_path = "./model/model.onnx";  // Default model path
     std::string golden_dir_path = "";
-    std::vector<std::string> image_paths; // compare: --images a.jpg b.jpg 
+    std::vector<std::string> image_paths; // compare: --images a.jpg b.jpg
+    std::vector<std::string> labels;      // add: none (parent dir name), one for all, or one per --images entry
+    std::string user;                     // add: create_by. Defaults to the OS user name.
+    std::string storage_dir = "./data";   // add: directory holding the embedding tables
 };
 
 void PrintUsage(std::ostream& out) {
@@ -56,6 +59,13 @@ void PrintUsage(std::ostream& out) {
            "  info                  print device properties and current clock state\n"
            "  demo                  run the original add-one/reduction sanity demo\n"
            "  compare --images A B ...  embed images and rank how similar each pair is\n"
+           "  add [--label L] --images A dir/ ...\n"
+           "                        embed images and store them; files already stored\n"
+           "                        are skipped. A directory is searched recursively for\n"
+           "                        .jpg/.jpeg/.jpe/.png/.bmp files. Without --label, each\n"
+           "                        image is labelled with its parent directory's name;\n"
+           "                        with one --label, every image gets that label; with\n"
+           "                        one --label per --images entry, each entry gets its own\n"
            "\n"
            "options:\n"
            "  --device N            CUDA device index (default 0)\n"
@@ -67,6 +77,9 @@ void PrintUsage(std::ostream& out) {
            "                        allowed, e.g. 1M,4M,16M,64M\n"
            "  --markdown PATH       append a dated BENCHMARKS.md entry to PATH\n"
            "  --note TEXT           the 'what changed' line for that entry\n"
+           "  --model PATH          ONNX model (default ./model/model.onnx)\n"
+           "  --storage DIR         embedding storage directory (default ./data)\n"
+           "  --user NAME           create_by for stored rows (default: OS user name)\n"
            "  -h, --help            this message\n";
 }
 
@@ -158,10 +171,22 @@ Options ParseArgs(int argc, char** argv, bool* should_exit) {
             options.model_path = TakeValue(argc, argv, i, "--model");
         } else if (arg == "--golden_dir") {
             options.golden_dir_path = TakeValue(argc, argv, i, "--golden_dir");
+        } else if (arg == "--label") {
+            options.labels.push_back(TakeValue(argc, argv, i, "--label"));
+        } else if (arg == "--user") {
+            options.user = TakeValue(argc, argv, i, "--user");
+        } else if (arg == "--storage") {
+            options.storage_dir = TakeValue(argc, argv, i, "--storage");
         } else if (arg == "--images") {
             // Takes every following argument up to the next option.
             while (i + 1 < argc && argv[i + 1][0] != '-') {
-                options.image_paths.push_back(argv[++i]);
+                std::string path = argv[++i];
+                // Windows argument parsing turns a trailing \" into a literal quote:
+                // "C:\cars\" arrives as C:\cars" . Drop it so the directory is still found.
+                if (!path.empty() && path.back() == '"') {
+                    path.pop_back();
+                }
+                options.image_paths.push_back(std::move(path));
             }
             if (options.image_paths.empty()) {
                 throw std::runtime_error("--images requires at least one path");
@@ -286,14 +311,43 @@ int RunBench(const Options& options) {
     return trustworthy ? 0 : 2;
 }
 
-int RunEngine(const Options& options) {
+// The OS login name, used as create_by when --user is not given.
+std::string DefaultUser() {
+    for (const char* var : { "USERNAME", "USER" }) {
+#ifdef _WIN32
+        // std::getenv is C4996, which SDL checks turn into an error.
+        char* value = nullptr;
+        size_t len = 0;
+        if (_dupenv_s(&value, &len, var) == 0 && value != nullptr) {
+            std::string name(value);
+            std::free(value);
+            if (!name.empty()) {
+                return name;
+            }
+        }
+#else
+        if (const char* value = std::getenv(var); value != nullptr && *value != '\0') {
+            return value;
+        }
+#endif
+    }
+    return "unknown";
+}
+
+int RunAdd(const Options& options) {
+    if (options.image_paths.empty()) {
+        throw std::runtime_error("add needs images: --images a.jpg dir/ ...");
+    }
 
     ohy::InitArg initArgs;
     initArgs.modelPath = options.model_path;
-    //initArgs.type = ohy::InstanceType::COMPARE;
+    initArgs.storageDir = options.storage_dir;
+    initArgs.type = ohy::InstanceType::CRUD;
 
     ohy::RunArg runArgs;
     runArgs.imagePaths = options.image_paths;
+    runArgs.labels = options.labels;
+    runArgs.runBy = options.user.empty() ? DefaultUser() : options.user;
 
     ohy::Engine engine;
     engine.Initialize(initArgs);
@@ -371,7 +425,7 @@ int main(int argc, char** argv) {
             return RunTest(options);
         }
         if (options.command == "add") {
-            return RunEngine(options);
+            return RunAdd(options);
         }
         if (options.command == "golden") {
             return RunGolden(options);

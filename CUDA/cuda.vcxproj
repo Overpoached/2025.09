@@ -485,6 +485,9 @@
     <ClCompile Include="src\engine\instances\golden.cpp" />
     <ClCompile Include="src\engine\instances\instance.cpp" />
     <ClCompile Include="src\engine\instances\crud.cpp" />
+    <ClCompile Include="src\search\embed_store.cpp" />
+    <ClCompile Include="src\search\file_storage_proxy.cpp" />
+    <ClCompile Include="src\test\storage_test.cpp" />
     <ClCompile Include="src\engine\ops\concat.cpp" />
     <ClCompile Include="src\engine\ops\conv.cpp" />
     <ClCompile Include="src\engine\ops\gather.cpp" />
@@ -515,6 +518,10 @@
     <ClInclude Include="src\engine\engine.h" />
     <ClInclude Include="src\engine\instances\compare.h" />
     <ClInclude Include="src\engine\instances\crud.h" />
+    <ClInclude Include="src\search\embed_store.h" />
+    <ClInclude Include="src\search\file_storage_proxy.h" />
+    <ClInclude Include="src\search\records.h" />
+    <ClInclude Include="src\search\storage_proxy.h" />
     <ClInclude Include="src\engine\instances\infer.h" />
     <ClInclude Include="src\engine\instances\instance.h" />
     <ClInclude Include="src\engine\op.h" />
