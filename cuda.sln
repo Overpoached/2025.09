@@ -1,0 +1,61 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.10.12217.157
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cuda", "CUDA\cuda.vcxproj", "{9F686E70-492B-40D9-9856-8E3A50F7262A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Debug-Add|x64 = Debug-Add|x64
+		Debug-Add|x86 = Debug-Add|x86
+		Debug-Compare|x64 = Debug-Compare|x64
+		Debug-Compare|x86 = Debug-Compare|x86
+		Debug-Golden|x64 = Debug-Golden|x64
+		Debug-Golden|x86 = Debug-Golden|x86
+		Debug-Infer|x64 = Debug-Infer|x64
+		Debug-Infer|x86 = Debug-Infer|x86
+		Debug-Test|x64 = Debug-Test|x64
+		Debug-Test|x86 = Debug-Test|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug|x64.ActiveCfg = Debug|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug|x64.Build.0 = Debug|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug|x86.ActiveCfg = Debug|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug|x86.Build.0 = Debug|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Add|x64.ActiveCfg = Debug-Add|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Add|x64.Build.0 = Debug-Add|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Add|x86.ActiveCfg = Debug-Add|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Add|x86.Build.0 = Debug-Add|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Compare|x64.ActiveCfg = Debug-Compare|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Compare|x64.Build.0 = Debug-Compare|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Compare|x86.ActiveCfg = Debug-Compare|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Compare|x86.Build.0 = Debug-Compare|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Golden|x64.ActiveCfg = Debug-Golden|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Golden|x64.Build.0 = Debug-Golden|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Golden|x86.ActiveCfg = Debug-Golden|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Golden|x86.Build.0 = Debug-Golden|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Infer|x64.ActiveCfg = Debug-Infer|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Infer|x64.Build.0 = Debug-Infer|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Infer|x86.ActiveCfg = Debug-Infer|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Infer|x86.Build.0 = Debug-Infer|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Test|x64.ActiveCfg = Debug-Test|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Test|x64.Build.0 = Debug-Test|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Test|x86.ActiveCfg = Debug-Test|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Debug-Test|x86.Build.0 = Debug-Test|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Release|x64.ActiveCfg = Release|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Release|x64.Build.0 = Release|x64
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Release|x86.ActiveCfg = Release|Win32
+		{9F686E70-492B-40D9-9856-8E3A50F7262A}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4361222E-6AAD-33C8-BBFE-EC964736BBB2}
+	EndGlobalSection
+EndGlobal
